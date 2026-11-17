@@ -6,6 +6,7 @@ import com.drivio.entity.User;
 import com.drivio.enums.BookingStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
@@ -25,6 +26,9 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     @Query("SELECT COUNT(b) FROM Booking b WHERE b.bookingStatus IN ('DRIVER_ASSIGNED', 'DRIVER_ACCEPTED', 'DRIVER_ARRIVED', 'TRIP_STARTED')")
     long countActiveBookings();
+
+    @Query("SELECT COUNT(b) > 0 FROM Booking b WHERE b.driver.id = :driverId AND b.bookingStatus IN ('DRIVER_ACCEPTED', 'DRIVER_ARRIVED', 'TRIP_STARTED')")
+    boolean hasActiveOngoingTrip(@Param("driverId") Long driverId);
 
     @Query("SELECT COALESCE(SUM(b.totalFare), 0) FROM Booking b WHERE b.bookingStatus = 'TRIP_COMPLETED'")
     BigDecimal calculateTotalRevenue();

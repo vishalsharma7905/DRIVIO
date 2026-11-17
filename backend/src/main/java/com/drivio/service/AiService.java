@@ -13,9 +13,11 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -38,7 +40,11 @@ public class AiService {
         this.ollamaBaseUrl = ollamaBaseUrl;
         this.ollamaModel = ollamaModel;
         this.objectMapper = new ObjectMapper();
-        this.restTemplate = new RestTemplate();
+
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(Duration.ofSeconds(3));
+        requestFactory.setReadTimeout(Duration.ofSeconds(15));
+        this.restTemplate = new RestTemplate(requestFactory);
     }
 
     public AiRequirementExtractionResponse extractRequirements(AiRequirementExtractionRequest request) {

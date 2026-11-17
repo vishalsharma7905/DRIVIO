@@ -99,6 +99,15 @@ public class BookingService {
             if (assignedDriver.getVerificationStatus() != VerificationStatus.VERIFIED) {
                 throw new BadRequestException("Requested driver is not verified.");
             }
+            // Concurrency & Availability check: ensure requested driver is online
+            DriverAvailability availability = driverAvailabilityRepository.findByDriverProfileId(assignedDriver.getId()).orElse(null);
+            if (availability == null || !availability.isAvailable()) {
+                throw new BadRequestException("Requested driver is currently offline or off-duty.");
+            }
+            // Double-booking check: ensure driver does not already have an active ongoing trip
+            if (bookingRepository.hasActiveOngoingTrip(assignedDriver.getId())) {
+                throw new BadRequestException("Requested driver is currently engaged in another active trip.");
+            }
         } else {
             // Run recommendation algorithm to auto-match top ranked available driver
             RecommendationRequest recRequest = new RecommendationRequest();
@@ -110,8 +119,12 @@ public class BookingService {
 
             List<DriverRecommendationDto> ranked = recommendationService.recommendDrivers(recRequest);
             if (!ranked.isEmpty()) {
-                Long topDriverId = ranked.get(0).getDriverId();
-                assignedDriver = driverProfileRepository.findById(topDriverId).orElse(null);
+                for (DriverRecommendationDto rec : ranked) {
+                    if (!bookingRepository.hasActiveOngoingTrip(rec.getDriverId())) {
+                        assignedDriver = driverProfileRepository.findById(rec.getDriverId()).orElse(null);
+                        if (assignedDriver != null) break;
+                    }
+                }
             }
         }
 
@@ -164,6 +177,11 @@ public class BookingService {
 
         if (booking.getBookingStatus() != BookingStatus.DRIVER_ASSIGNED && booking.getBookingStatus() != BookingStatus.SEARCHING_DRIVER) {
             throw new BadRequestException("Booking cannot be accepted from status: " + booking.getBookingStatus());
+        }
+
+        // Concurrency check: prevent driver from accepting multiple overlapping trips
+        if (bookingRepository.hasActiveOngoingTrip(driver.getId())) {
+            throw new BadRequestException("You already have an active ongoing trip in progress. Complete it before accepting another.");
         }
 
         booking.setBookingStatus(BookingStatus.DRIVER_ACCEPTED);
@@ -326,6 +344,14 @@ public class BookingService {
 
         if (booking.getBookingStatus() == BookingStatus.TRIP_COMPLETED) {
             throw new BadRequestException("Cannot cancel a completed trip");
+        }
+
+        if (booking.getBookingStatus() == BookingStatus.CANCELLED) {
+            throw new BadRequestException("Booking has already been cancelled");
+        }
+
+        if (booking.getBookingStatus() == BookingStatus.TRIP_STARTED && isCustomer) {
+            throw new BadRequestException("Trip is currently in progress. Please contact driver or support to cancel.");
         }
 
         booking.setBookingStatus(BookingStatus.CANCELLED);

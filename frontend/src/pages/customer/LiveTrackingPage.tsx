@@ -43,10 +43,16 @@ export const LiveTrackingPage: React.FC = () => {
       socketService.connect(() => {
         socketService.subscribe(`/topic/tracking/${id}`, (data: LiveTracking) => {
           setTracking(data);
-          if (data.bookingStatus && booking && data.bookingStatus !== booking.bookingStatus) {
-            setBooking((prev) => prev ? { ...prev, bookingStatus: data.bookingStatus } : null);
+          const newStatus = data.bookingStatus || data.status;
+          if (newStatus) {
+            setBooking((prev) => prev ? { ...prev, bookingStatus: newStatus, status: newStatus } : null);
+            if (newStatus === 'TRIP_COMPLETED') {
+              setShowPaymentModal(true);
+            }
           }
-          updateMapDriverPosition(data.driverLatitude, data.driverLongitude);
+          if (data.driverLatitude != null && data.driverLongitude != null) {
+            updateMapDriverPosition(data.driverLatitude, data.driverLongitude);
+          }
         });
       });
     }

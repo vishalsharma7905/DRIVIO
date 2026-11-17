@@ -6,6 +6,7 @@ import com.drivio.service.BookingService;
 import com.drivio.service.DriverService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.core.io.Resource;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -69,6 +70,15 @@ public class DriverController {
     @Operation(summary = "Get driver's uploaded verification documents")
     public ResponseEntity<List<DriverDocumentDto>> getDocuments(@AuthenticationPrincipal UserPrincipal userPrincipal) {
         return ResponseEntity.ok(driverService.getDriverDocuments(userPrincipal.getId()));
+    }
+
+    @GetMapping("/documents/{documentId}/file")
+    @PreAuthorize("hasAnyRole('DRIVER', 'ADMIN')")
+    @Operation(summary = "Securely retrieve an authorized driver verification document")
+    public ResponseEntity<Resource> getDocumentFile(
+            @PathVariable Long documentId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) throws IOException {
+        return driverService.getDocumentFile(userPrincipal.getId(), userPrincipal.getRole(), documentId);
     }
 
     @GetMapping("/bookings")

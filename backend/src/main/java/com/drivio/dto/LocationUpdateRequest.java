@@ -28,8 +28,18 @@ public class LocationUpdateRequest {
 
     public Double getSpeed() { return speed; }
     public void setSpeed(Double speed) { this.speed = speed; }
+    public void setSpeedKmh(Double speedKmh) {
+        if (this.speed == null) {
+            this.speed = speedKmh;
+        }
+    }
 
     public Double getHeading() { return heading; }
     public void setHeading(Double heading) { this.heading = heading; }
+    public void setHeadingDegrees(Double headingDegrees) {
+        if (this.heading == null) {
+            this.heading = headingDegrees;
+        }
+    }
 }
 

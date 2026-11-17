@@ -6,12 +6,11 @@ import com.drivio.entity.Booking;
 import com.drivio.entity.BookingLocation;
 import com.drivio.entity.DriverLocationHistory;
 import com.drivio.entity.DriverProfile;
+import com.drivio.enums.Role;
 import com.drivio.exception.BadRequestException;
 import com.drivio.exception.ResourceNotFoundException;
-import com.drivio.repository.BookingLocationRepository;
-import com.drivio.repository.BookingRepository;
-import com.drivio.repository.DriverLocationHistoryRepository;
-import com.drivio.repository.DriverProfileRepository;
+import com.drivio.exception.UnauthorizedException;
+import com.drivio.repository.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -29,6 +28,7 @@ public class TrackingService {
     private final BookingRepository bookingRepository;
     private final BookingLocationRepository bookingLocationRepository;
     private final DriverLocationHistoryRepository driverLocationHistoryRepository;
+    private final UserRepository userRepository;
     private final SimpMessagingTemplate messagingTemplate;
 
     public TrackingService(
@@ -36,11 +36,13 @@ public class TrackingService {
             BookingRepository bookingRepository,
             BookingLocationRepository bookingLocationRepository,
             DriverLocationHistoryRepository driverLocationHistoryRepository,
+            UserRepository userRepository,
             SimpMessagingTemplate messagingTemplate) {
         this.driverProfileRepository = driverProfileRepository;
         this.bookingRepository = bookingRepository;
         this.bookingLocationRepository = bookingLocationRepository;
         this.driverLocationHistoryRepository = driverLocationHistoryRepository;
+        this.userRepository = userRepository;
         this.messagingTemplate = messagingTemplate;
     }
 
@@ -109,6 +111,17 @@ public class TrackingService {
     public LiveTrackingDto getBookingLiveTracking(Long bookingId, Long requestingUserId) {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found with id: " + bookingId));
+
+        // Security check: Only booking customer, assigned driver, or admin can track
+        boolean isCustomer = booking.getCustomer().getId().equals(requestingUserId);
+        boolean isDriver = (booking.getDriver() != null && booking.getDriver().getUser().getId().equals(requestingUserId));
+        boolean isAdmin = userRepository.findById(requestingUserId)
+                .map(u -> u.getRole() == Role.ADMIN)
+                .orElse(false);
+
+        if (!isCustomer && !isDriver && !isAdmin) {
+            throw new UnauthorizedException("Access denied: You are not authorized to track this booking");
+        }
 
         LiveTrackingDto dto = new LiveTrackingDto();
         dto.setBookingId(booking.getId());

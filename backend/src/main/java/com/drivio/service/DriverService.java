@@ -9,14 +9,21 @@ import com.drivio.entity.DriverAvailability;
 import com.drivio.entity.DriverDocument;
 import com.drivio.entity.DriverProfile;
 import com.drivio.entity.User;
+import com.drivio.enums.Role;
 import com.drivio.enums.VerificationStatus;
 import com.drivio.exception.BadRequestException;
 import com.drivio.exception.ResourceNotFoundException;
+import com.drivio.exception.UnauthorizedException;
 import com.drivio.repository.DriverAvailabilityRepository;
 import com.drivio.repository.DriverDocumentRepository;
 import com.drivio.repository.DriverProfileRepository;
 import com.drivio.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -28,6 +35,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -132,24 +140,54 @@ public class DriverService {
         return dto;
     }
 
+    private static final List<String> ALLOWED_EXTENSIONS = Arrays.asList(".pdf", ".png", ".jpg", ".jpeg", ".webp");
+    private static final List<String> ALLOWED_CONTENT_TYPES = Arrays.asList(
+            "application/pdf", "image/png", "image/jpeg", "image/webp"
+    );
+    private static final long MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
     @Transactional
     public DriverDocumentDto uploadDocument(Long userId, String documentType, MultipartFile file) throws IOException {
+        if (file == null || file.isEmpty()) {
+            throw new BadRequestException("Uploaded file cannot be empty");
+        }
+
+        if (file.getSize() > MAX_FILE_SIZE) {
+            throw new BadRequestException("File size exceeds maximum permitted limit of 10MB");
+        }
+
+        String originalFilename = file.getOriginalFilename();
+        String extension = "";
+        if (originalFilename != null && originalFilename.contains(".")) {
+            extension = originalFilename.substring(originalFilename.lastIndexOf(".")).toLowerCase();
+        }
+
+        if (!ALLOWED_EXTENSIONS.contains(extension)) {
+            throw new BadRequestException("Invalid file extension. Only PDF, PNG, JPG, JPEG, and WEBP files are permitted.");
+        }
+
+        String contentType = file.getContentType();
+        if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(contentType.toLowerCase())) {
+            throw new BadRequestException("Invalid file content type (" + contentType + "). Only PDF and images are accepted.");
+        }
+
         DriverProfile profile = driverProfileRepository.findByUserId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Driver profile not found"));
 
         File dir = new File(uploadDir);
         if (!dir.exists()) dir.mkdirs();
 
-        String originalFilename = file.getOriginalFilename();
-        String extension = "";
-        if (originalFilename != null && originalFilename.contains(".")) {
-            extension = originalFilename.substring(originalFilename.lastIndexOf("."));
-        }
         String fileName = UUID.randomUUID() + extension;
-        Path targetPath = Paths.get(uploadDir).resolve(fileName);
+        Path targetPath = Paths.get(uploadDir).resolve(fileName).normalize();
+
+        // Verify no path traversal outside uploadDir
+        if (!targetPath.startsWith(Paths.get(uploadDir).normalize())) {
+            throw new BadRequestException("Security violation: Invalid upload file path");
+        }
+
         Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
 
-        String fileUrl = "/uploads/" + fileName;
+        String fileUrl = "/api/drivers/documents/file/" + fileName;
 
         // If driving license, also update licence document url on profile
         if ("DRIVING_LICENCE".equalsIgnoreCase(documentType)) {
@@ -172,6 +210,38 @@ public class DriverService {
         dto.setRemarks(saved.getRemarks());
         dto.setCreatedAt(saved.getCreatedAt());
         return dto;
+    }
+
+    @Transactional(readOnly = true)
+    public ResponseEntity<Resource> getDocumentFile(Long requestingUserId, Role requestingRole, Long documentId) throws IOException {
+        DriverDocument document = driverDocumentRepository.findById(documentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Document not found with ID: " + documentId));
+
+        boolean isAdmin = (requestingRole == Role.ADMIN);
+        boolean isOwnerDriver = document.getDriverProfile().getUser().getId().equals(requestingUserId);
+
+        if (!isAdmin && !isOwnerDriver) {
+            throw new UnauthorizedException("Access denied: You are not authorized to view this document");
+        }
+
+        String docUrl = document.getDocumentUrl();
+        String fileName = docUrl.substring(docUrl.lastIndexOf("/") + 1);
+        Path filePath = Paths.get(uploadDir).resolve(fileName).normalize();
+
+        if (!filePath.startsWith(Paths.get(uploadDir).normalize()) || !Files.exists(filePath)) {
+            throw new ResourceNotFoundException("Document file not found on disk");
+        }
+
+        Resource resource = new UrlResource(filePath.toUri());
+        String contentType = Files.probeContentType(filePath);
+        if (contentType == null) {
+            contentType = "application/octet-stream";
+        }
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(contentType))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + fileName + "\"")
+                .body(resource);
     }
 
     @Transactional(readOnly = true)
