@@ -4,6 +4,7 @@ import { AuthProvider } from './context/AuthContext';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 // Public pages
 import { LandingPage } from './pages/public/LandingPage';
@@ -40,31 +41,50 @@ export const App: React.FC = () => {
         <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 font-sans">
           <Navbar />
           <main className="flex-1">
-            <Routes>
-              {/* Public Routes */}
-              <Route path="/" element={<LandingPage />} />
-              <Route path="/about" element={<AboutPage />} />
-              <Route path="/services" element={<ServicesPage />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/register" element={<RegisterPage />} />
+            <ErrorBoundary>
+              <Routes>
+                {/* Public Routes */}
+                <Route path="/" element={<LandingPage />} />
+                <Route path="/about" element={<AboutPage />} />
+                <Route path="/services" element={<ServicesPage />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
 
-              {/* Customer Routes */}
-              <Route
-                path="/customer/dashboard"
-                element={
-                  <ProtectedRoute allowedRoles={['CUSTOMER', 'ADMIN']}>
-                    <CustomerDashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/customer/book"
-                element={
-                  <ProtectedRoute allowedRoles={['CUSTOMER', 'ADMIN']}>
-                    <CreateBookingPage />
-                  </ProtectedRoute>
-                }
-              />
+                {/* Direct Booking & Tracking aliases */}
+                <Route
+                  path="/book"
+                  element={
+                    <ProtectedRoute allowedRoles={['CUSTOMER', 'ADMIN']}>
+                      <CreateBookingPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/track/:id"
+                  element={
+                    <ProtectedRoute allowedRoles={['CUSTOMER', 'DRIVER', 'ADMIN']}>
+                      <LiveTrackingPage />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* Customer Routes */}
+                <Route
+                  path="/customer/dashboard"
+                  element={
+                    <ProtectedRoute allowedRoles={['CUSTOMER', 'ADMIN']}>
+                      <CustomerDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/customer/book"
+                  element={
+                    <ProtectedRoute allowedRoles={['CUSTOMER', 'ADMIN']}>
+                      <CreateBookingPage />
+                    </ProtectedRoute>
+                  }
+                />
               <Route
                 path="/customer/tracking/:id"
                 element={
@@ -174,9 +194,10 @@ export const App: React.FC = () => {
                 }
               />
 
-              {/* Fallback */}
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
+                {/* Fallback */}
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </ErrorBoundary>
           </main>
           <Footer />
         </div>

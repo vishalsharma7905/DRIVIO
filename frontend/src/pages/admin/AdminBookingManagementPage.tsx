@@ -38,13 +38,20 @@ export const AdminBookingManagementPage: React.FC = () => {
   }, []);
 
   const filteredBookings = bookings.filter(b => {
-    if (statusFilter !== 'ALL' && b.status !== statusFilter) return false;
+    const status = b.bookingStatus || b.status;
+    if (statusFilter !== 'ALL' && status !== statusFilter) return false;
     const q = search.toLowerCase();
-    return b.bookingNumber.toLowerCase().includes(q) ||
-           b.customerName?.toLowerCase().includes(q) ||
-           b.driverName?.toLowerCase().includes(q) ||
-           b.pickupAddress.toLowerCase().includes(q) ||
-           b.dropoffAddress.toLowerCase().includes(q);
+    const ref = (b.bookingReference || b.bookingNumber || '').toLowerCase();
+    const cust = (b.customerName || '').toLowerCase();
+    const driver = (b.driverName || '').toLowerCase();
+    const pickup = (b.pickupAddress || '').toLowerCase();
+    const dropoff = (b.destinationAddress || b.dropoffAddress || '').toLowerCase();
+
+    return ref.includes(q) ||
+           cust.includes(q) ||
+           driver.includes(q) ||
+           pickup.includes(q) ||
+           dropoff.includes(q);
   });
 
   return (

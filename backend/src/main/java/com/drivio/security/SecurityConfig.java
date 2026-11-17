@@ -73,9 +73,10 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // Public auth endpoints
                 .requestMatchers("/api/auth/**").permitAll()
-                // Public pricing preview and AI extraction
+                // Public pricing preview, AI extraction, and driver recommendations
                 .requestMatchers(HttpMethod.GET, "/api/pricing/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/pricing/estimate").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/drivers/recommendations").permitAll()
                 .requestMatchers("/api/ai/**").permitAll()
                 // Public docs and static files
                 .requestMatchers("/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
