@@ -110,49 +110,55 @@ export const AdminBookingManagementPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredBookings.map(b => (
-                  <tr key={b.id} className="hover:bg-slate-50/50">
-                    <td className="py-4 px-6 font-mono font-semibold text-slate-900">
-                      #{b.bookingNumber}
-                    </td>
-                    <td className="py-4 px-6 font-medium text-slate-900">
-                      {b.customerName}
-                    </td>
-                    <td className="py-4 px-6">
-                      {b.driverName ? (
-                        <span className="font-medium text-slate-900">{b.driverName}</span>
-                      ) : (
-                        <span className="text-xs text-slate-400 italic">Not assigned</span>
-                      )}
-                    </td>
-                    <td className="py-4 px-6 text-xs">
-                      <span className="font-semibold text-slate-800 block">{b.serviceType.replace(/_/g, ' ')}</span>
-                      <span className="text-slate-500">{b.vehicleType}</span>
-                    </td>
-                    <td className="py-4 px-6 font-bold text-slate-900">
-                      ₹{b.estimatedFare.toFixed(2)}
-                    </td>
-                    <td className="py-4 px-6">
-                      <span className={`px-2.5 py-1 text-xs rounded-full font-semibold ${
-                        b.status === 'TRIP_COMPLETED' ? 'bg-emerald-100 text-emerald-800' :
-                        b.status === 'CANCELLED' ? 'bg-rose-100 text-rose-800' :
-                        b.status === 'TRIP_STARTED' ? 'bg-blue-100 text-blue-800 font-bold' :
-                        'bg-amber-100 text-amber-800'
-                      }`}>
-                        {b.status.replace(/_/g, ' ')}
-                      </span>
-                    </td>
-                    <td className="py-4 px-6 text-right">
-                      <button
-                        onClick={() => setSelectedBooking(b)}
-                        className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition"
-                        title="View Full Booking Details"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {filteredBookings.map(b => {
+                  const bookingRef = b.bookingReference || b.bookingNumber || `DRV-${b.id}`;
+                  const fare = b.totalFare ?? b.estimatedFare ?? 0;
+                  const status = b.bookingStatus || b.status || 'PENDING';
+
+                  return (
+                    <tr key={b.id} className="hover:bg-slate-50/50">
+                      <td className="py-4 px-6 font-mono font-semibold text-slate-900">
+                        #{bookingRef}
+                      </td>
+                      <td className="py-4 px-6 font-medium text-slate-900">
+                        {b.customerName}
+                      </td>
+                      <td className="py-4 px-6">
+                        {b.driverName ? (
+                          <span className="font-medium text-slate-900">{b.driverName}</span>
+                        ) : (
+                          <span className="text-xs text-slate-400 italic">Not assigned</span>
+                        )}
+                      </td>
+                      <td className="py-4 px-6 text-xs">
+                        <span className="font-semibold text-slate-800 block">{b.serviceType?.replace(/_/g, ' ')}</span>
+                        <span className="text-slate-500">{b.vehicleType}</span>
+                      </td>
+                      <td className="py-4 px-6 font-bold text-slate-900">
+                        ₹{Number(fare).toFixed(2)}
+                      </td>
+                      <td className="py-4 px-6">
+                        <span className={`px-2.5 py-1 text-xs rounded-full font-semibold ${
+                          status === 'TRIP_COMPLETED' ? 'bg-emerald-100 text-emerald-800' :
+                          status === 'CANCELLED' ? 'bg-rose-100 text-rose-800' :
+                          status === 'TRIP_STARTED' ? 'bg-blue-100 text-blue-800 font-bold' :
+                          'bg-amber-100 text-amber-800'
+                        }`}>
+                          {status.replace(/_/g, ' ')}
+                        </span>
+                      </td>
+                      <td className="py-4 px-6 text-right">
+                        <button
+                          onClick={() => setSelectedBooking(b)}
+                          className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition"
+                          title="View Full Booking Details"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -209,7 +215,7 @@ export const AdminBookingManagementPage: React.FC = () => {
                   <Navigation className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
                   <div>
                     <span className="text-xs text-slate-400 block font-semibold uppercase">Destination Address</span>
-                    <span className="text-slate-800 font-medium">{selectedBooking.dropoffAddress}</span>
+                    <span className="text-slate-800 font-medium">{selectedBooking.destinationAddress || selectedBooking.dropoffAddress}</span>
                   </div>
                 </div>
               </div>
@@ -236,7 +242,7 @@ export const AdminBookingManagementPage: React.FC = () => {
                   <span className="text-xs text-emerald-600">Calculated per pricing engine</span>
                 </div>
                 <span className="text-2xl font-bold text-emerald-900">
-                  ₹{selectedBooking.estimatedFare.toFixed(2)}
+                  ₹{Number(selectedBooking.totalFare ?? selectedBooking.estimatedFare ?? 0).toFixed(2)}
                 </span>
               </div>
             </div>

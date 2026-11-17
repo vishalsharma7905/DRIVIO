@@ -241,13 +241,13 @@ export const DriverTripsPage: React.FC = () => {
                 <span className="bg-emerald-500 text-white text-xs px-2.5 py-0.5 rounded-full font-bold uppercase animate-pulse">
                   Active Mission
                 </span>
-                <span className="text-slate-400 text-xs font-mono">#{activeTrip.bookingNumber}</span>
+                <span className="text-slate-400 text-xs font-mono">#{activeTrip.bookingReference || activeTrip.bookingNumber || `DRV-${activeTrip.id}`}</span>
               </div>
               <h2 className="text-xl font-bold mt-2">
-                Status: {activeTrip.status.replace(/_/g, ' ')}
+                Status: {(activeTrip.bookingStatus || activeTrip.status || '').replace(/_/g, ' ')}
               </h2>
               <p className="text-sm text-slate-300 mt-1">
-                {activeTrip.serviceType.replace(/_/g, ' ')} • {activeTrip.vehicleType} • ₹{activeTrip.estimatedFare.toFixed(2)}
+                {activeTrip.serviceType?.replace(/_/g, ' ')} • {activeTrip.vehicleType} • ₹{Number(activeTrip.totalFare ?? activeTrip.estimatedFare ?? 0).toFixed(2)}
               </p>
             </div>
 
@@ -404,40 +404,47 @@ export const DriverTripsPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredBookings.map(b => (
-                  <tr key={b.id} className="hover:bg-slate-50/50">
-                    <td className="py-3.5 px-4 font-mono font-medium text-slate-900">#{b.bookingNumber}</td>
-                    <td className="py-3.5 px-4">
-                      <span className="font-semibold text-slate-900 block">{b.customerName}</span>
-                      <span className="text-xs text-slate-400">{b.customerPhone}</span>
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <div className="max-w-xs text-xs truncate">
-                        <span className="text-emerald-700 font-medium">From:</span> {b.pickupAddress}
-                      </div>
-                      <div className="max-w-xs text-xs truncate mt-0.5">
-                        <span className="text-rose-700 font-medium">To:</span> {b.dropoffAddress}
-                      </div>
-                    </td>
-                    <td className="py-3.5 px-4 text-xs">
-                      <span className="font-medium text-slate-800">{b.serviceType.replace(/_/g, ' ')}</span>
-                      <span className="block text-slate-400">{b.vehicleType}</span>
-                    </td>
-                    <td className="py-3.5 px-4 font-bold text-slate-900">₹{b.estimatedFare.toFixed(2)}</td>
-                    <td className="py-3.5 px-4">
-                      <span className={`px-2.5 py-1 text-xs rounded-full font-semibold ${
-                        b.status === 'TRIP_COMPLETED' ? 'bg-emerald-100 text-emerald-800' :
-                        b.status === 'CANCELLED' ? 'bg-rose-100 text-rose-800' :
-                        'bg-blue-100 text-blue-800'
-                      }`}>
-                        {b.status.replace(/_/g, ' ')}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4 text-xs text-slate-500">
-                      {new Date(b.createdAt).toLocaleDateString()}
-                    </td>
-                  </tr>
-                ))}
+                {filteredBookings.map(b => {
+                  const bookingRef = b.bookingReference || b.bookingNumber || `DRV-${b.id}`;
+                  const dropoff = b.destinationAddress || b.dropoffAddress || '';
+                  const fare = b.totalFare ?? b.estimatedFare ?? 0;
+                  const status = b.bookingStatus || b.status || 'PENDING';
+
+                  return (
+                    <tr key={b.id} className="hover:bg-slate-50/50">
+                      <td className="py-3.5 px-4 font-mono font-medium text-slate-900">#{bookingRef}</td>
+                      <td className="py-3.5 px-4">
+                        <span className="font-semibold text-slate-900 block">{b.customerName}</span>
+                        <span className="text-xs text-slate-400">{b.customerPhone}</span>
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <div className="max-w-xs text-xs truncate">
+                          <span className="text-emerald-700 font-medium">From:</span> {b.pickupAddress}
+                        </div>
+                        <div className="max-w-xs text-xs truncate mt-0.5">
+                          <span className="text-rose-700 font-medium">To:</span> {dropoff}
+                        </div>
+                      </td>
+                      <td className="py-3.5 px-4 text-xs">
+                        <span className="font-medium text-slate-800">{b.serviceType?.replace(/_/g, ' ')}</span>
+                        <span className="block text-slate-400">{b.vehicleType}</span>
+                      </td>
+                      <td className="py-3.5 px-4 font-bold text-slate-900">₹{Number(fare).toFixed(2)}</td>
+                      <td className="py-3.5 px-4">
+                        <span className={`px-2.5 py-1 text-xs rounded-full font-semibold ${
+                          status === 'TRIP_COMPLETED' ? 'bg-emerald-100 text-emerald-800' :
+                          status === 'CANCELLED' ? 'bg-rose-100 text-rose-800' :
+                          'bg-blue-100 text-blue-800'
+                        }`}>
+                          {status.replace(/_/g, ' ')}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 text-xs text-slate-500">
+                        {new Date(b.createdAt).toLocaleDateString()}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

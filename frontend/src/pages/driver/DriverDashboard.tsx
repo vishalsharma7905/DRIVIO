@@ -335,7 +335,7 @@ export const DriverDashboard: React.FC = () => {
                     </span>
                     <span>Distance: {req.estimatedDistanceKm} km</span>
                     <span className="font-bold text-slate-900 text-sm text-emerald-700">
-                      Estimated Payout: ₹{req.estimatedFare.toFixed(2)}
+                      Estimated Payout: ₹{Number(req.totalFare ?? req.estimatedFare ?? 0).toFixed(2)}
                     </span>
                   </div>
                 </div>
@@ -389,22 +389,29 @@ export const DriverDashboard: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {completedTrips.slice(0, 5).map(trip => (
-                  <tr key={trip.id} className="hover:bg-slate-50/50">
-                    <td className="py-3.5 px-4 font-mono font-medium text-slate-900">#{trip.bookingNumber}</td>
-                    <td className="py-3.5 px-4">
-                      <span className="block truncate max-w-xs">{trip.pickupAddress} → {trip.dropoffAddress}</span>
-                    </td>
-                    <td className="py-3.5 px-4">{trip.serviceType.replace(/_/g, ' ')}</td>
-                    <td className="py-3.5 px-4 text-xs">{new Date(trip.createdAt).toLocaleDateString()}</td>
-                    <td className="py-3.5 px-4 font-semibold text-slate-900">₹{trip.estimatedFare.toFixed(2)}</td>
-                    <td className="py-3.5 px-4">
-                      <span className="px-2.5 py-1 text-xs rounded-full font-semibold bg-emerald-100 text-emerald-800">
-                        COMPLETED
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                {completedTrips.slice(0, 5).map(trip => {
+                  const bookingRef = trip.bookingReference || trip.bookingNumber || `DRV-${trip.id}`;
+                  const dropoff = trip.destinationAddress || trip.dropoffAddress || '';
+                  const fare = trip.totalFare ?? trip.estimatedFare ?? 0;
+                  const status = trip.bookingStatus || trip.status || 'COMPLETED';
+
+                  return (
+                    <tr key={trip.id} className="hover:bg-slate-50/50">
+                      <td className="py-3.5 px-4 font-mono font-medium text-slate-900">#{bookingRef}</td>
+                      <td className="py-3.5 px-4">
+                        <span className="block truncate max-w-xs">{trip.pickupAddress} → {dropoff}</span>
+                      </td>
+                      <td className="py-3.5 px-4">{trip.serviceType?.replace(/_/g, ' ')}</td>
+                      <td className="py-3.5 px-4 text-xs">{new Date(trip.createdAt).toLocaleDateString()}</td>
+                      <td className="py-3.5 px-4 font-semibold text-slate-900">₹{Number(fare).toFixed(2)}</td>
+                      <td className="py-3.5 px-4">
+                        <span className="px-2.5 py-1 text-xs rounded-full font-semibold bg-emerald-100 text-emerald-800">
+                          {status.replace(/_/g, ' ')}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

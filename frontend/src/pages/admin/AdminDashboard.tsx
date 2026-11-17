@@ -180,33 +180,40 @@ export const AdminDashboard: React.FC = () => {
             <p className="text-sm text-slate-500 py-6 text-center">No platform bookings yet.</p>
           ) : (
             <div className="divide-y divide-slate-100">
-              {recentBookings.map(b => (
-                <div key={b.id} className="py-3.5 flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <div className="flex items-center space-x-2">
-                      <span className="font-mono text-xs font-bold text-slate-900">#{b.bookingNumber}</span>
-                      <span className="text-xs text-slate-500">• {b.serviceType.replace(/_/g, ' ')}</span>
-                      <span className="text-xs bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-medium">
-                        {b.vehicleType}
+              {recentBookings.map(b => {
+                const bookingRef = b.bookingReference || b.bookingNumber || `DRV-${b.id}`;
+                const dropoff = b.destinationAddress || b.dropoffAddress || '';
+                const fare = b.totalFare ?? b.estimatedFare ?? 0;
+                const status = b.bookingStatus || b.status || 'PENDING';
+
+                return (
+                  <div key={b.id} className="py-3.5 flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <div className="flex items-center space-x-2">
+                        <span className="font-mono text-xs font-bold text-slate-900">#{bookingRef}</span>
+                        <span className="text-xs text-slate-500">• {b.serviceType?.replace(/_/g, ' ')}</span>
+                        <span className="text-xs bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-medium">
+                          {b.vehicleType}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-600 truncate max-w-sm">
+                        {b.pickupAddress} → {dropoff}
+                      </p>
+                    </div>
+
+                    <div className="text-right">
+                      <span className="font-bold text-slate-900 text-sm block">₹{Number(fare).toFixed(2)}</span>
+                      <span className={`px-2 py-0.5 text-[10px] rounded-full font-semibold ${
+                        status === 'TRIP_COMPLETED' ? 'bg-emerald-100 text-emerald-800' :
+                        status === 'CANCELLED' ? 'bg-rose-100 text-rose-800' :
+                        'bg-blue-100 text-blue-800'
+                      }`}>
+                        {status.replace(/_/g, ' ')}
                       </span>
                     </div>
-                    <p className="text-xs text-slate-600 truncate max-w-sm">
-                      {b.pickupAddress} → {b.dropoffAddress}
-                    </p>
                   </div>
-
-                  <div className="text-right">
-                    <span className="font-bold text-slate-900 text-sm block">₹{b.estimatedFare.toFixed(2)}</span>
-                    <span className={`px-2 py-0.5 text-[10px] rounded-full font-semibold ${
-                      b.status === 'TRIP_COMPLETED' ? 'bg-emerald-100 text-emerald-800' :
-                      b.status === 'CANCELLED' ? 'bg-rose-100 text-rose-800' :
-                      'bg-blue-100 text-blue-800'
-                    }`}>
-                      {b.status.replace(/_/g, ' ')}
-                    </span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
