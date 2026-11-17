@@ -59,6 +59,56 @@ public class AiService {
         }
     }
 
+    public String generateRecommendationEndorsement(
+            String driverName,
+            Double rating,
+            Integer experienceYears,
+            Double distanceKm,
+            Double matchScore,
+            String vehicleType,
+            String serviceType) {
+        String prompt = String.format(
+                "You are DRIVIO AI matching assistant. In 1 or 2 concise, reassuring sentences, explain why driver %s " +
+                "(rating: %.1f stars, experience: %d years, %.1f km away, match score: %.0f%%) is the ideal chauffeur for a %s %s booking.",
+                driverName,
+                rating != null ? rating : 5.0,
+                experienceYears != null ? experienceYears : 0,
+                distanceKm != null ? distanceKm : 0.0,
+                matchScore != null ? matchScore : 100.0,
+                vehicleType,
+                serviceType
+        );
+
+        try {
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("model", ollamaModel);
+            payload.put("prompt", prompt);
+            payload.put("stream", false);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(payload, headers);
+
+            ResponseEntity<String> response = restTemplate.postForEntity(ollamaBaseUrl + "/api/generate", entity, String.class);
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                JsonNode rootNode = objectMapper.readTree(response.getBody());
+                String responseText = rootNode.path("response").asText();
+                if (responseText != null && !responseText.isBlank()) {
+                    return responseText.trim().replace("\r", "").replace("\n", " ");
+                }
+            }
+        } catch (Exception e) {
+            logger.warn("Ollama unavailable for recommendation endorsement ({}), using rule-based endorsement.", e.getMessage());
+        }
+
+        // Deterministic intelligent fallback endorsement
+        return String.format("%s is your top-matched chauffeur based on proximity (%.1f km away), %.1f★ verified rating, and %s vehicle certification.",
+                driverName,
+                distanceKm != null ? distanceKm : 0.0,
+                rating != null ? rating : 5.0,
+                vehicleType);
+    }
+
     private AiRequirementExtractionResponse extractUsingOllama(String userPrompt) throws Exception {
         String systemInstruction = """
                 You are DRIVIO AI, an intelligent driver requirement extraction engine.

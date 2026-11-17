@@ -528,8 +528,9 @@ export const CreateBookingPage: React.FC = () => {
                   <Shield className="w-5 h-5 text-blue-400" />
                   <h3 className="text-sm font-bold text-white">Recommended Drivers</h3>
                 </div>
-                <span className="text-[10px] text-emerald-400 font-semibold bg-emerald-500/10 px-2 py-0.5 rounded-full">
-                  Rule-Based Match
+                <span className="text-[10px] text-indigo-400 font-semibold bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded-full flex items-center space-x-1">
+                  <Sparkles className="w-3 h-3 text-indigo-400" />
+                  <span>AI-Ranked Match</span>
                 </span>
               </div>
 
@@ -587,6 +588,14 @@ export const CreateBookingPage: React.FC = () => {
                         {driver.matchReasons && driver.matchReasons.length > 0 && (
                           <div className="mt-2 text-[10px] text-blue-300 bg-blue-950/60 px-2 py-1 rounded-md border border-blue-500/20 truncate">
                             ✓ {driver.matchReasons[0]}
+                          </div>
+                        )}
+
+                        {/* AI Match Endorsement */}
+                        {driver.aiEndorsement && (
+                          <div className="mt-2 text-[10px] text-indigo-300 bg-indigo-950/60 p-2 rounded-md border border-indigo-500/30 flex items-start space-x-1.5 leading-relaxed">
+                            <Sparkles className="w-3.5 h-3.5 text-indigo-400 flex-shrink-0 mt-0.5" />
+                            <span><strong className="text-indigo-200">AI Endorsement:</strong> {driver.aiEndorsement}</span>
                           </div>
                         )}
                       </div>

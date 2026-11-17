@@ -29,7 +29,7 @@ public class AdminController {
         this.bookingService = bookingService;
     }
 
-    @GetMapping("/dashboard")
+    @GetMapping({"/dashboard", "/stats"})
     @Operation(summary = "Get platform overview analytics and KPIs")
     public ResponseEntity<AdminDashboardStatsDto> getDashboardStats() {
         return ResponseEntity.ok(adminService.getDashboardStats());

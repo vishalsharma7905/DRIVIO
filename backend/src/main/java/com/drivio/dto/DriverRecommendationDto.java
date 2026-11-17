@@ -17,6 +17,7 @@ public class DriverRecommendationDto {
     private Double distanceKm;
     private Double matchScore; // 0 to 100
     private List<String> matchReasons;
+    private String aiEndorsement;
     private ScoreBreakdown breakdown;
 
     public static class ScoreBreakdown {
@@ -97,6 +98,9 @@ public class DriverRecommendationDto {
 
     public List<String> getMatchReasons() { return matchReasons; }
     public void setMatchReasons(List<String> matchReasons) { this.matchReasons = matchReasons; }
+
+    public String getAiEndorsement() { return aiEndorsement; }
+    public void setAiEndorsement(String aiEndorsement) { this.aiEndorsement = aiEndorsement; }
 
     public ScoreBreakdown getBreakdown() { return breakdown; }
     public void setBreakdown(ScoreBreakdown breakdown) { this.breakdown = breakdown; }

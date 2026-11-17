@@ -162,6 +162,7 @@ export interface DriverRecommendation {
   distanceKm: number;
   matchScore: number;
   matchReasons: string[];
+  aiEndorsement?: string;
   breakdown: ScoreBreakdown;
 }
 

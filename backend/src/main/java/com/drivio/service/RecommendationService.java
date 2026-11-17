@@ -19,6 +19,7 @@ import java.util.stream.Collectors;
 public class RecommendationService {
 
     private final DriverProfileRepository driverProfileRepository;
+    private final AiService aiService;
 
     // Modular weights as required:
     private static final double WEIGHT_AVAILABILITY = 0.25;
@@ -28,8 +29,9 @@ public class RecommendationService {
     private static final double WEIGHT_VEHICLE_COMPATIBILITY = 0.10;
     private static final double WEIGHT_SERVICE_COMPATIBILITY = 0.10;
 
-    public RecommendationService(DriverProfileRepository driverProfileRepository) {
+    public RecommendationService(DriverProfileRepository driverProfileRepository, AiService aiService) {
         this.driverProfileRepository = driverProfileRepository;
+        this.aiService = aiService;
     }
 
     @Transactional(readOnly = true)
@@ -141,9 +143,26 @@ public class RecommendationService {
         }
 
         // Rank by matchScore descending
-        return recommendations.stream()
+        List<DriverRecommendationDto> sorted = recommendations.stream()
                 .sorted(Comparator.comparing(DriverRecommendationDto::getMatchScore).reversed())
                 .collect(Collectors.toList());
+
+        // Enrich the top-ranked driver with Ollama AI match endorsement
+        if (!sorted.isEmpty()) {
+            DriverRecommendationDto top = sorted.get(0);
+            String endorsement = aiService.generateRecommendationEndorsement(
+                    top.getDriverName(),
+                    top.getRating(),
+                    top.getExperienceYears(),
+                    top.getDistanceKm(),
+                    top.getMatchScore(),
+                    request.getVehicleType().name(),
+                    request.getServiceType().name().replace('_', ' ')
+            );
+            top.setAiEndorsement(endorsement);
+        }
+
+        return sorted;
     }
 
     /**
