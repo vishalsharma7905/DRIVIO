@@ -68,13 +68,11 @@ public class AiService {
             String vehicleType,
             String serviceType) {
         String prompt = String.format(
-                "You are DRIVIO AI matching assistant. In 1 or 2 concise, reassuring sentences, explain why driver %s " +
-                "(rating: %.1f stars, experience: %d years, %.1f km away, match score: %.0f%%) is the ideal chauffeur for a %s %s booking.",
+                "Summarize in one sentence the ride-hailing match: Chauffeur %s is %.1f km away with %.2f stars and %d years driving experience for a %s %s trip.",
                 driverName,
+                distanceKm != null ? distanceKm : 0.0,
                 rating != null ? rating : 5.0,
                 experienceYears != null ? experienceYears : 0,
-                distanceKm != null ? distanceKm : 0.0,
-                matchScore != null ? matchScore : 100.0,
                 vehicleType,
                 serviceType
         );
@@ -94,7 +92,11 @@ public class AiService {
                 JsonNode rootNode = objectMapper.readTree(response.getBody());
                 String responseText = rootNode.path("response").asText();
                 if (responseText != null && !responseText.isBlank()) {
-                    return responseText.trim().replace("\r", "").replace("\n", " ");
+                    String cleaned = responseText.trim().replace("\r", "").replace("\n", " ");
+                    String lower = cleaned.toLowerCase();
+                    if (!lower.contains("can't") && !lower.contains("cannot") && !lower.contains("sorry")) {
+                        return cleaned;
+                    }
                 }
             }
         } catch (Exception e) {
