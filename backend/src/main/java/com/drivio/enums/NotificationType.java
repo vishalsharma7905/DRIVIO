@@ -1,0 +1,16 @@
+package com.drivio.enums;
+
+public enum NotificationType {
+    BOOKING_CONFIRMATION,
+    DRIVER_ASSIGNED,
+    DRIVER_ACCEPTED,
+    DRIVER_REJECTED,
+    DRIVER_ARRIVED,
+    TRIP_STARTED,
+    TRIP_COMPLETED,
+    BOOKING_CANCELLED,
+    PAYMENT_CONFIRMED,
+    KYC_STATUS_UPDATED,
+    GENERAL
+}
+

@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: drivio-postgres
+    environment:
+      POSTGRES_DB: drivio
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password123
+    ports:
+      - "5432:5432"
+    volumes:
+      - drivio_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d drivio"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: drivio-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - drivio_ollama:/root/.ollama
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: drivio-backend
+    environment:
+      SPRING_PROFILES_ACTIVE: postgres
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/drivio
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: password123
+      DRIVIO_AI_OLLAMA_URL: http://ollama:11434
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: drivio-frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+
+volumes:
+  drivio_pgdata:
+  drivio_ollama:
+
