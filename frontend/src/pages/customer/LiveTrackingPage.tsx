@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   Car, Shield, Phone, MapPin, Navigation, 
-  CheckCircle, Clock, AlertCircle, Star, DollarSign,
+  CheckCircle, Clock, AlertCircle, Star, IndianRupee,
   ChevronRight, RefreshCw, XCircle
 } from 'lucide-react';
 import api from '../../services/api';
@@ -480,7 +480,7 @@ export const LiveTrackingPage: React.FC = () => {
           <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
             <div className="flex justify-between items-center pb-3 border-b border-slate-800">
               <h3 className="text-base font-bold text-white flex items-center space-x-2">
-                <DollarSign className="w-5 h-5 text-emerald-400" />
+                <IndianRupee className="w-5 h-5 text-emerald-400" />
                 <span>Complete Trip Payment</span>
               </h3>
               <button

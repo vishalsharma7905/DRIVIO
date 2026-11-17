@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Car, Calendar, MapPin, DollarSign, ArrowUpRight, Search, Filter } from 'lucide-react';
+import { Car, Calendar, MapPin, IndianRupee, ArrowUpRight, Search, Filter } from 'lucide-react';
 import api from '../../services/api';
 import { Booking } from '../../types';
 

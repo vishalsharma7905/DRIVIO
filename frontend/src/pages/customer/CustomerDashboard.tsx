@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { 
   Car, Clock, MapPin, Navigation, Shield, 
   Sparkles, Star, ChevronRight, AlertCircle, 
-  CheckCircle, ArrowUpRight, DollarSign 
+  CheckCircle, ArrowUpRight, IndianRupee 
 } from 'lucide-react';
 import api from '../../services/api';
 import { Booking } from '../../types';
@@ -158,7 +158,7 @@ export const CustomerDashboard: React.FC = () => {
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg">
             <div className="flex items-center justify-between text-slate-400 text-xs mb-2">
               <span>Total Spent</span>
-              <DollarSign className="w-4 h-4 text-blue-400" />
+              <IndianRupee className="w-4 h-4 text-blue-400" />
             </div>
             <div className="text-2xl font-bold text-white">₹{totalSpent.toLocaleString()}</div>
             <p className="text-[11px] text-slate-500 mt-1">Transparent fare breakdown</p>

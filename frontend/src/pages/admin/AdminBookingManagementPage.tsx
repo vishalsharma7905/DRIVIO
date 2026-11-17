@@ -7,7 +7,7 @@ import {
   MapPin, 
   Navigation, 
   Calendar, 
-  DollarSign, 
+  IndianRupee, 
   User, 
   Eye, 
   X,

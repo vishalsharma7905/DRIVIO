@@ -3,7 +3,7 @@ import { pricingApi } from '../../services/api';
 import { PricingConfiguration } from '../../types';
 import { 
   Sliders, 
-  DollarSign, 
+  IndianRupee, 
   Edit3, 
   CheckCircle2, 
   AlertCircle, 

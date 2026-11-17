@@ -5,7 +5,7 @@ import { driverApi, bookingApi } from '../../services/api';
 import { DriverProfile, BookingResponse } from '../../types';
 import { 
   Car, 
-  DollarSign, 
+  IndianRupee, 
   Star, 
   Clock, 
   MapPin, 
@@ -193,7 +193,7 @@ export const DriverDashboard: React.FC = () => {
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Earnings</span>
             <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl">
-              <DollarSign className="w-5 h-5" />
+              <IndianRupee className="w-5 h-5" />
             </div>
           </div>
           <p className="text-2xl font-bold text-slate-900 mt-4">

@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { 
   Car, Shield, Bell, User as UserIcon, LogOut, 
-  Menu, X, CheckCircle, Clock, MapPin, DollarSign,
+  Menu, X, CheckCircle, Clock, MapPin, IndianRupee,
   AlertCircle, ChevronDown
 } from 'lucide-react';
 import api from '../services/api';

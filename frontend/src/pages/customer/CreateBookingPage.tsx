@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   Car, Sparkles, MapPin, Calendar, Clock, 
-  Shield, CheckCircle, ArrowRight, DollarSign, 
+  Shield, CheckCircle, ArrowRight, IndianRupee, 
   Compass, Navigation, AlertCircle, Star, Info
 } from 'lucide-react';
 import api from '../../services/api';
@@ -466,7 +466,7 @@ export const CreateBookingPage: React.FC = () => {
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-slate-800">
                 <div className="flex items-center space-x-2">
-                  <DollarSign className="w-5 h-5 text-emerald-400" />
+                  <IndianRupee className="w-5 h-5 text-emerald-400" />
                   <h3 className="text-sm font-bold text-white">Estimated Fare Breakdown</h3>
                 </div>
                 {estimatingFare && (
