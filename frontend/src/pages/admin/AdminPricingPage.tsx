@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { pricingApi } from '../../services/api';
-import { PricingConfiguration } from '../../types';
+import { PricingConfiguration, VehiclePricingConfiguration, PricingAuditLog } from '../../types';
 import { 
   Sliders, 
   IndianRupee, 
@@ -14,8 +14,11 @@ import {
 
 export const AdminPricingPage: React.FC = () => {
   const [configurations, setConfigurations] = useState<PricingConfiguration[]>([]);
+  const [vehicleConfigs, setVehicleConfigs] = useState<VehiclePricingConfiguration[]>([]);
+  const [auditLogs, setAuditLogs] = useState<PricingAuditLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingConfig, setEditingConfig] = useState<PricingConfiguration | null>(null);
+  const [editingVehicleConfig, setEditingVehicleConfig] = useState<VehiclePricingConfiguration | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -23,8 +26,14 @@ export const AdminPricingPage: React.FC = () => {
   const fetchConfigurations = async () => {
     try {
       setLoading(true);
-      const res = await pricingApi.getConfigurations();
-      setConfigurations(res.data);
+      const [serviceRes, vehicleRes, auditRes] = await Promise.all([
+        pricingApi.getConfigurations(),
+        pricingApi.getVehicleConfigurations(),
+        pricingApi.getAuditLogs(),
+      ]);
+      setConfigurations(serviceRes.data);
+      setVehicleConfigs(vehicleRes.data);
+      setAuditLogs(auditRes.data);
     } catch (err) {
       console.error('Failed to load pricing configurations', err);
     } finally {
@@ -50,6 +59,24 @@ export const AdminPricingPage: React.FC = () => {
       setTimeout(() => setSaveSuccess(false), 4000);
     } catch (err: any) {
       setSaveError(err.response?.data?.message || 'Failed to update pricing rules');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleVehicleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingVehicleConfig) return;
+    try {
+      setSaving(true);
+      setSaveError(null);
+      await pricingApi.updateVehicleConfiguration(editingVehicleConfig.id, editingVehicleConfig);
+      setSaveSuccess(true);
+      setEditingVehicleConfig(null);
+      await fetchConfigurations();
+      setTimeout(() => setSaveSuccess(false), 4000);
+    } catch (err: any) {
+      setSaveError(err.response?.data?.message || 'Failed to update vehicle pricing rules');
     } finally {
       setSaving(false);
     }
@@ -283,6 +310,162 @@ export const AdminPricingPage: React.FC = () => {
                 >
                   <Save className="w-4 h-4" />
                   <span>{saving ? 'Saving...' : 'Apply New Rates'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Normal Ride Vehicle Pricing (Delhi NCR) */}
+      <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-bold text-slate-900">Normal Ride Vehicle Pricing (Delhi NCR)</h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Changes increment the pricing version and do not alter historical or already-quoted trips.
+            </p>
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead>
+              <tr className="border-b border-slate-200 text-slate-500">
+                <th className="py-2.5 px-3">Category</th>
+                <th className="py-2.5 px-3">Base</th>
+                <th className="py-2.5 px-3">Per KM</th>
+                <th className="py-2.5 px-3">Per Min</th>
+                <th className="py-2.5 px-3">Min Fare</th>
+                <th className="py-2.5 px-3">Wait (Free / Rate)</th>
+                <th className="py-2.5 px-3">Night / Peak</th>
+                <th className="py-2.5 px-3">Cancel</th>
+                <th className="py-2.5 px-3">Ver</th>
+                <th className="py-2.5 px-3 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {vehicleConfigs.map((vc) => (
+                <tr key={vc.id} className="hover:bg-slate-50">
+                  <td className="py-2.5 px-3 font-bold text-slate-900">{vc.vehicleCategory}</td>
+                  <td className="py-2.5 px-3">₹{vc.baseFare.toFixed(2)}</td>
+                  <td className="py-2.5 px-3">₹{vc.perKmRate.toFixed(2)}</td>
+                  <td className="py-2.5 px-3">₹{vc.perMinuteRate.toFixed(2)}</td>
+                  <td className="py-2.5 px-3 font-semibold text-emerald-700">₹{vc.minFare.toFixed(2)}</td>
+                  <td className="py-2.5 px-3">{vc.waitingFreeMinutes}m / ₹{vc.waitingPerMinuteRate}</td>
+                  <td className="py-2.5 px-3">{vc.nightSurchargePercent}% / {vc.peakSurchargePercent}%</td>
+                  <td className="py-2.5 px-3">₹{vc.cancellationFee}</td>
+                  <td className="py-2.5 px-3 font-mono">v{vc.version}</td>
+                  <td className="py-2.5 px-3 text-right">
+                    <button
+                      onClick={() => setEditingVehicleConfig({ ...vc })}
+                      className="px-2.5 py-1 bg-slate-100 hover:bg-emerald-50 text-slate-700 rounded-lg font-semibold"
+                    >
+                      Edit
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Pricing Audit Trail */}
+      {auditLogs.length > 0 && (
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-3">
+          <h2 className="text-base font-bold text-slate-900">Pricing Configuration Audit Trail</h2>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="border-b border-slate-200 text-slate-500">
+                  <th className="py-2 px-3">Category</th>
+                  <th className="py-2 px-3">Ver</th>
+                  <th className="py-2 px-3">Previous Values</th>
+                  <th className="py-2 px-3">Updated Values</th>
+                  <th className="py-2 px-3">Changed At</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {auditLogs.slice(0, 10).map((log) => (
+                  <tr key={log.id}>
+                    <td className="py-2 px-3 font-bold">{log.vehicleCategory}</td>
+                    <td className="py-2 px-3 font-mono">v{log.version}</td>
+                    <td className="py-2 px-3 text-slate-500">{log.oldValues}</td>
+                    <td className="py-2 px-3 text-emerald-700">{log.newValues}</td>
+                    <td className="py-2 px-3 text-slate-400">{new Date(log.changedAt).toLocaleString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Vehicle Pricing Modal */}
+      {editingVehicleConfig && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl space-y-4">
+            <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+              <h3 className="text-lg font-bold text-slate-900">
+                Edit {editingVehicleConfig.vehicleCategory} Pricing (v{editingVehicleConfig.version})
+              </h3>
+              <button onClick={() => setEditingVehicleConfig(null)} className="p-1.5 text-slate-400 hover:text-slate-700">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleVehicleUpdate} className="grid grid-cols-2 gap-3 text-xs">
+              <div>
+                <label className="block font-semibold mb-1">Base Fare (₹)</label>
+                <input type="number" step="0.5" value={editingVehicleConfig.baseFare}
+                  onChange={(e) => setEditingVehicleConfig({ ...editingVehicleConfig, baseFare: parseFloat(e.target.value) || 0 })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl" required />
+              </div>
+              <div>
+                <label className="block font-semibold mb-1">Per KM Rate (₹)</label>
+                <input type="number" step="0.5" value={editingVehicleConfig.perKmRate}
+                  onChange={(e) => setEditingVehicleConfig({ ...editingVehicleConfig, perKmRate: parseFloat(e.target.value) || 0 })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl" required />
+              </div>
+              <div>
+                <label className="block font-semibold mb-1">Per Minute Rate (₹)</label>
+                <input type="number" step="0.25" value={editingVehicleConfig.perMinuteRate}
+                  onChange={(e) => setEditingVehicleConfig({ ...editingVehicleConfig, perMinuteRate: parseFloat(e.target.value) || 0 })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl" required />
+              </div>
+              <div>
+                <label className="block font-semibold mb-1">Minimum Fare (₹)</label>
+                <input type="number" step="1" value={editingVehicleConfig.minFare}
+                  onChange={(e) => setEditingVehicleConfig({ ...editingVehicleConfig, minFare: parseFloat(e.target.value) || 0 })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl" required />
+              </div>
+              <div>
+                <label className="block font-semibold mb-1">Wait Rate (₹/min)</label>
+                <input type="number" step="0.5" value={editingVehicleConfig.waitingPerMinuteRate}
+                  onChange={(e) => setEditingVehicleConfig({ ...editingVehicleConfig, waitingPerMinuteRate: parseFloat(e.target.value) || 0 })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl" required />
+              </div>
+              <div>
+                <label className="block font-semibold mb-1">Night Surcharge (%)</label>
+                <input type="number" step="1" value={editingVehicleConfig.nightSurchargePercent}
+                  onChange={(e) => setEditingVehicleConfig({ ...editingVehicleConfig, nightSurchargePercent: parseFloat(e.target.value) || 0 })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl" required />
+              </div>
+              <div>
+                <label className="block font-semibold mb-1">Peak Surcharge (10-30%)</label>
+                <input type="number" step="1" min="10" max="30" value={editingVehicleConfig.peakSurchargePercent}
+                  onChange={(e) => setEditingVehicleConfig({ ...editingVehicleConfig, peakSurchargePercent: parseFloat(e.target.value) || 10 })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl" required />
+              </div>
+              <div>
+                <label className="block font-semibold mb-1">Cancellation Fee (₹25-50)</label>
+                <input type="number" step="1" min="25" max="50" value={editingVehicleConfig.cancellationFee}
+                  onChange={(e) => setEditingVehicleConfig({ ...editingVehicleConfig, cancellationFee: parseFloat(e.target.value) || 25 })}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl" required />
+              </div>
+              <div className="col-span-2 flex justify-end space-x-2 pt-3">
+                <button type="button" onClick={() => setEditingVehicleConfig(null)} className="px-4 py-2 text-slate-600 font-semibold">Cancel</button>
+                <button type="submit" disabled={saving} className="px-4 py-2 bg-emerald-600 text-white rounded-xl font-semibold">
+                  {saving ? 'Saving...' : 'Save & Increment Version'}
                 </button>
               </div>
             </form>

@@ -5,9 +5,10 @@ export type ServiceType =
   | 'ONE_WAY'
   | 'ROUND_TRIP'
   | 'HOURLY'
-  | 'OUTSTATION';
+  | 'OUTSTATION'
+  | 'CAR_LUGGAGE_DELIVERY';
 
-export type VehicleType = 'HATCHBACK' | 'SEDAN' | 'SUV' | 'LUXURY';
+export type VehicleType = 'BIKE' | 'AUTO' | 'HATCHBACK' | 'SEDAN' | 'PREMIUM_SEDAN' | 'SUV' | 'LUXURY';
 
 export type BookingStatus =
   | 'PENDING'
@@ -24,7 +25,7 @@ export type VerificationStatus = 'PENDING' | 'VERIFIED' | 'REJECTED';
 
 export type PaymentStatus = 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED';
 
-export type PaymentMethod = 'CASH' | 'MOCK_CARD' | 'MOCK_UPI';
+export type PaymentMethod = 'CASH' | 'MOCK_CARD' | 'MOCK_UPI' | 'RAZORPAY';
 
 export type ComplaintStatus = 'OPEN' | 'UNDER_INVESTIGATION' | 'RESOLVED' | 'DISMISSED';
 
@@ -129,14 +130,77 @@ export interface FareEstimate {
   estimatedDurationMinutes: number;
   baseFare: number;
   perKmRate: number;
+  perMinuteRate?: number;
   distanceFare: number;
   durationFare: number;
+  waitingCharges?: number;
+  surchargeAmount?: number;
+  tollAmount?: number;
+  parkingAmount?: number;
   additionalCharges: number;
   subtotal: number;
   taxPercentage: number;
   taxAmount: number;
   totalEstimatedFare: number;
+  pricingVersion?: number;
+  minFareApplied?: boolean;
   disclaimer: string;
+}
+
+export interface VehiclePricingConfiguration {
+  id: number;
+  vehicleCategory: VehicleType;
+  baseFare: number;
+  perKmRate: number;
+  perMinuteRate: number;
+  minFare: number;
+  waitingFreeMinutes: number;
+  waitingPerMinuteRate: number;
+  nightSurchargePercent: number;
+  peakSurchargePercent: number;
+  cancellationFee: number;
+  taxPercentage: number;
+  version: number;
+  active: boolean;
+}
+
+export interface DriverEarningEntry {
+  id: number;
+  driverProfileId: number;
+  bookingId?: number;
+  amount: number;
+  status: 'ACCRUED' | 'AVAILABLE' | 'RESERVED' | 'ADJUSTED' | 'REVERSED' | 'SETTLED';
+  settledAt?: string;
+  accruedAt: string;
+  description?: string;
+}
+
+export interface DriverBalanceSummary {
+  driverProfileId: number;
+  accrued: number;
+  available: number;
+  reserved: number;
+  settled: number;
+  history: DriverEarningEntry[];
+}
+
+export interface DriverSettlementRecord {
+  id: number;
+  driverProfileId: number;
+  totalAmount: number;
+  status: 'PENDING' | 'COMPLETED' | 'FAILED';
+  completedAt?: string;
+  initiatedAt: string;
+}
+
+export interface PricingAuditLog {
+  id: number;
+  vehicleCategory: string;
+  version: number;
+  changedByAdminId?: number;
+  oldValues: string;
+  newValues: string;
+  changedAt: string;
 }
 
 export interface ScoreBreakdown {

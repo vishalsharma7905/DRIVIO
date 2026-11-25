@@ -5,6 +5,8 @@ import com.drivio.enums.ServiceType;
 import com.drivio.enums.VehicleType;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -99,6 +101,57 @@ public class Booking {
 
     @Column(name = "special_instructions", columnDefinition = "TEXT")
     private String specialInstructions;
+
+    @Column(name = "service_subtype")
+    private String serviceSubtype;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "vehicle_id")
+    @JsonIgnore
+    private Vehicle vehicle;
+
+    @Column(name = "luggage_count", nullable = false)
+    private Integer luggageCount = 0;
+
+    @Column(name = "pickup_otp")
+    private String pickupOtp;
+
+    @Column(name = "destination_otp")
+    private String destinationOtp;
+
+    @Column(name = "odometer_start")
+    private Integer odometerStart;
+
+    @Column(name = "odometer_end")
+    private Integer odometerEnd;
+
+    @Column(name = "fuel_level_start")
+    private String fuelLevelStart;
+
+    @Column(name = "fuel_level_end")
+    private String fuelLevelEnd;
+
+    @Column(name = "damage_notes_start", columnDefinition = "TEXT")
+    private String damageNotesStart;
+
+    @Column(name = "damage_notes_end", columnDefinition = "TEXT")
+    private String damageNotesEnd;
+
+    @Column(name = "sos_triggered", nullable = false)
+    private boolean sosTriggered = false;
+
+    @Column(name = "sos_triggered_at")
+    private LocalDateTime sosTriggeredAt;
+
+    @Column(name = "pricing_version")
+    private Integer pricingVersion = 1;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "fare_snapshot", columnDefinition = "jsonb")
+    private String fareSnapshot;
+
+    @Column(name = "pricing_profile_version_id")
+    private Long pricingProfileVersionId;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
@@ -214,5 +267,53 @@ public class Booking {
 
     public List<BookingLocation> getLocations() { return locations; }
     public void setLocations(List<BookingLocation> locations) { this.locations = locations; }
+
+    public String getServiceSubtype() { return serviceSubtype; }
+    public void setServiceSubtype(String serviceSubtype) { this.serviceSubtype = serviceSubtype; }
+
+    public Vehicle getVehicle() { return vehicle; }
+    public void setVehicle(Vehicle vehicle) { this.vehicle = vehicle; }
+
+    public Integer getLuggageCount() { return luggageCount; }
+    public void setLuggageCount(Integer luggageCount) { this.luggageCount = luggageCount; }
+
+    public String getPickupOtp() { return pickupOtp; }
+    public void setPickupOtp(String pickupOtp) { this.pickupOtp = pickupOtp; }
+
+    public String getDestinationOtp() { return destinationOtp; }
+    public void setDestinationOtp(String destinationOtp) { this.destinationOtp = destinationOtp; }
+
+    public Integer getOdometerStart() { return odometerStart; }
+    public void setOdometerStart(Integer odometerStart) { this.odometerStart = odometerStart; }
+
+    public Integer getOdometerEnd() { return odometerEnd; }
+    public void setOdometerEnd(Integer odometerEnd) { this.odometerEnd = odometerEnd; }
+
+    public String getFuelLevelStart() { return fuelLevelStart; }
+    public void setFuelLevelStart(String fuelLevelStart) { this.fuelLevelStart = fuelLevelStart; }
+
+    public String getFuelLevelEnd() { return fuelLevelEnd; }
+    public void setFuelLevelEnd(String fuelLevelEnd) { this.fuelLevelEnd = fuelLevelEnd; }
+
+    public String getDamageNotesStart() { return damageNotesStart; }
+    public void setDamageNotesStart(String damageNotesStart) { this.damageNotesStart = damageNotesStart; }
+
+    public String getDamageNotesEnd() { return damageNotesEnd; }
+    public void setDamageNotesEnd(String damageNotesEnd) { this.damageNotesEnd = damageNotesEnd; }
+
+    public boolean isSosTriggered() { return sosTriggered; }
+    public void setSosTriggered(boolean sosTriggered) { this.sosTriggered = sosTriggered; }
+
+    public LocalDateTime getSosTriggeredAt() { return sosTriggeredAt; }
+    public void setSosTriggeredAt(LocalDateTime sosTriggeredAt) { this.sosTriggeredAt = sosTriggeredAt; }
+
+    public Integer getPricingVersion() { return pricingVersion; }
+    public void setPricingVersion(Integer pricingVersion) { this.pricingVersion = pricingVersion; }
+
+    public String getFareSnapshot() { return fareSnapshot; }
+    public void setFareSnapshot(String fareSnapshot) { this.fareSnapshot = fareSnapshot; }
+
+    public Long getPricingProfileVersionId() { return pricingProfileVersionId; }
+    public void setPricingProfileVersionId(Long pricingProfileVersionId) { this.pricingProfileVersionId = pricingProfileVersionId; }
 }
 

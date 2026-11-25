@@ -76,14 +76,21 @@ export const CustomerDashboard: React.FC = () => {
               Welcome back, {user?.fullName}!
             </h1>
             <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-xl">
-              Book professional verified chauffeurs for your personal vehicles or track your active journeys in real-time.
+              Book a normal ride (Bike, Auto, Cab) with live Delhi NCR fares, or hire a verified chauffeur for your own car.
             </p>
           </div>
 
-          <div className="flex items-center space-x-3 w-full md:w-auto">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
+            <Link
+              to="/ride"
+              className="flex-1 md:flex-initial px-6 py-3.5 bg-emerald-500 hover:bg-emerald-400 text-[#09130C] text-xs sm:text-sm font-bold rounded-xl flex items-center justify-center space-x-2 shadow-lg shadow-emerald-500/20 transition-all"
+            >
+              <Navigation className="w-4 h-4" />
+              <span>Book a Ride</span>
+            </Link>
             <Link
               to="/book"
-              className="flex-1 md:flex-initial px-6 py-3.5 bg-blue-600 hover:bg-blue-500 text-white text-xs sm:text-sm font-semibold rounded-xl flex items-center justify-center space-x-2 shadow-lg shadow-blue-600/30 transition-all"
+              className="flex-1 md:flex-initial px-6 py-3.5 bg-[#242825] hover:bg-[#2F3431] border border-[#323733] text-white text-xs sm:text-sm font-semibold rounded-xl flex items-center justify-center space-x-2 transition-all"
             >
               <Car className="w-4 h-4" />
               <span>Book a Driver</span>

@@ -75,7 +75,7 @@ CREATE TABLE IF NOT EXISTS vehicles (
     vehicle_type VARCHAR(50) NOT NULL,
     make VARCHAR(100) NOT NULL,
     model VARCHAR(100) NOT NULL,
-    year INT,
+    "year" INT,
     registration_number VARCHAR(100) NOT NULL,
     transmission VARCHAR(50) DEFAULT 'MANUAL',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP

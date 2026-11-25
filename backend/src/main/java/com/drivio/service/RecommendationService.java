@@ -3,14 +3,16 @@ package com.drivio.service;
 import com.drivio.dto.DriverRecommendationDto;
 import com.drivio.dto.RecommendationRequest;
 import com.drivio.entity.DriverProfile;
-import com.drivio.enums.VerificationStatus;
+import com.drivio.repository.BookingRepository;
 import com.drivio.repository.DriverProfileRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -20,6 +22,7 @@ public class RecommendationService {
 
     private final DriverProfileRepository driverProfileRepository;
     private final AiService aiService;
+    private final BookingRepository bookingRepository;
 
     // Modular weights as required:
     private static final double WEIGHT_AVAILABILITY = 0.25;
@@ -30,8 +33,17 @@ public class RecommendationService {
     private static final double WEIGHT_SERVICE_COMPATIBILITY = 0.10;
 
     public RecommendationService(DriverProfileRepository driverProfileRepository, AiService aiService) {
+        this(driverProfileRepository, aiService, null);
+    }
+
+    @Autowired
+    public RecommendationService(
+            DriverProfileRepository driverProfileRepository,
+            AiService aiService,
+            BookingRepository bookingRepository) {
         this.driverProfileRepository = driverProfileRepository;
         this.aiService = aiService;
+        this.bookingRepository = bookingRepository;
     }
 
     @Transactional(readOnly = true)
@@ -42,6 +54,9 @@ public class RecommendationService {
         List<DriverRecommendationDto> recommendations = new ArrayList<>();
 
         for (DriverProfile driver : verifiedDrivers) {
+            if (bookingRepository != null && bookingRepository.hasActiveOngoingTrip(driver.getId())) {
+                continue;
+            }
             // Check driver location coordinates
             Double driverLat = driver.getCurrentLatitude();
             Double driverLng = driver.getCurrentLongitude();
@@ -75,15 +90,13 @@ public class RecommendationService {
             int experience = driver.getExperienceYears() != null ? driver.getExperienceYears() : 0;
             double experienceScore = Math.min(100.0, (experience / 10.0) * 100.0);
 
-            // Vehicle compatibility
-            boolean vehicleMatch = driver.getVehicleCategories() != null &&
-                    driver.getVehicleCategories().toUpperCase().contains(request.getVehicleType().name());
-            double vehicleScore = vehicleMatch ? 100.0 : 30.0;
+            // Vehicle compatibility (exact token match so SEDAN != PREMIUM_SEDAN)
+            boolean vehicleMatch = hasToken(driver.getVehicleCategories(), request.getVehicleType().name());
+            double vehicleScore = vehicleMatch ? 100.0 : 20.0;
 
-            // Service compatibility
-            boolean serviceMatch = driver.getServicePreferences() != null &&
-                    driver.getServicePreferences().toUpperCase().contains(request.getServiceType().name());
-            double serviceScore = serviceMatch ? 100.0 : 40.0;
+            // Service compatibility (exact token match)
+            boolean serviceMatch = hasToken(driver.getServicePreferences(), request.getServiceType().name());
+            double serviceScore = serviceMatch ? 100.0 : 30.0;
 
             // Step 3: Compute weighted score
             double totalScore = (availabilityScore * WEIGHT_AVAILABILITY) +
@@ -142,9 +155,11 @@ public class RecommendationService {
             recommendations.add(dto);
         }
 
-        // Rank by matchScore descending
+        // Rank deterministically by matchScore descending, then distance ascending, then driverId ascending
         List<DriverRecommendationDto> sorted = recommendations.stream()
-                .sorted(Comparator.comparing(DriverRecommendationDto::getMatchScore).reversed())
+                .sorted(Comparator.comparing(DriverRecommendationDto::getMatchScore).reversed()
+                        .thenComparing(DriverRecommendationDto::getDistanceKm)
+                        .thenComparing(DriverRecommendationDto::getDriverId))
                 .collect(Collectors.toList());
 
         // Enrich the top-ranked driver with Ollama AI match endorsement
@@ -182,6 +197,13 @@ public class RecommendationService {
         double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
         return EARTH_RADIUS_KM * c;
+    }
+
+    private boolean hasToken(String csv, String target) {
+        if (csv == null || target == null) return false;
+        return Arrays.stream(csv.split(","))
+                .map(String::trim)
+                .anyMatch(token -> token.equalsIgnoreCase(target));
     }
 }
 

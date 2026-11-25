@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { 
   Car, Shield, Bell, User as UserIcon, LogOut, 
   Menu, X, CheckCircle, Clock, MapPin, IndianRupee,
-  AlertCircle, ChevronDown
+  AlertCircle, ChevronDown, Sun, Moon
 } from 'lucide-react';
 import api from '../services/api';
 import { NotificationItem } from '../types';
@@ -12,6 +13,7 @@ import { socketService } from '../services/socket';
 
 export const Navbar: React.FC = () => {
   const { user, isAuthenticated, role, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -78,19 +80,19 @@ export const Navbar: React.FC = () => {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <nav className="bg-slate-900 text-white sticky top-0 z-50 shadow-md border-b border-slate-800">
+    <nav className="bg-[#181A19]/95 backdrop-blur-md text-white sticky top-0 z-50 shadow-md border-b border-[#2B2F2C]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-3 group">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
-              <Car className="w-6 h-6 text-white" />
+            <div className="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/20 group-hover:scale-105 transition-transform">
+              <Car className="w-6 h-6 text-[#09130C]" />
             </div>
             <div>
-              <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-blue-400 to-indigo-200 bg-clip-text text-transparent">
+              <span className="text-xl font-bold tracking-tight text-white">
                 DRIVIO
               </span>
-              <span className="hidden sm:inline-block ml-2 text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
+              <span className="hidden sm:inline-block ml-2 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
                 AI Mobility
               </span>
             </div>
@@ -136,9 +138,17 @@ export const Navbar: React.FC = () => {
                   Dashboard
                 </Link>
                 <Link
+                  to="/ride"
+                  className={`px-3 py-2 rounded-lg text-sm font-semibold bg-emerald-500 hover:bg-emerald-400 text-[#09130C] shadow-md transition-all ${
+                    isActive('/ride') || isActive('/customer/ride') ? 'ring-2 ring-emerald-300' : ''
+                  }`}
+                >
+                  Book a Ride
+                </Link>
+                <Link
                   to="/book"
-                  className={`px-3 py-2 rounded-lg text-sm font-medium bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-md transition-all ${
-                    isActive('/book') ? 'ring-2 ring-blue-400' : ''
+                  className={`px-3 py-2 rounded-lg text-sm font-medium border border-[#323733] bg-[#242825] hover:bg-[#2E332F] text-white transition-all ${
+                    isActive('/book') || isActive('/customer/book') ? 'ring-2 ring-emerald-400' : ''
                   }`}
                 >
                   Book a Driver
@@ -252,6 +262,14 @@ export const Navbar: React.FC = () => {
 
           {/* Right Action Menu */}
           <div className="hidden md:flex items-center space-x-3">
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-full text-slate-300 hover:text-white hover:bg-slate-800/80 transition-colors"
+              title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+              aria-label="Toggle color theme"
+            >
+              {theme === 'dark' ? <Sun className="w-5 h-5 text-amber-400" /> : <Moon className="w-5 h-5 text-emerald-500" />}
+            </button>
             {!isAuthenticated ? (
               <div className="flex items-center space-x-2">
                 <Link

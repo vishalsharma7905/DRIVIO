@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { driverApi, bookingApi } from '../../services/api';
-import { DriverProfile, BookingResponse } from '../../types';
+import { driverApi, bookingApi, driverEarningsApi } from '../../services/api';
+import { DriverProfile, BookingResponse, DriverBalanceSummary, DriverSettlementRecord } from '../../types';
 import { 
   Car, 
   IndianRupee, 
@@ -24,6 +24,10 @@ export const DriverDashboard: React.FC = () => {
   const [profile, setProfile] = useState<DriverProfile | null>(null);
   const [isAvailable, setIsAvailable] = useState<boolean>(false);
   const [bookings, setBookings] = useState<BookingResponse[]>([]);
+  const [balances, setBalances] = useState<DriverBalanceSummary | null>(null);
+  const [settlements, setSettlements] = useState<DriverSettlementRecord[]>([]);
+  const [withdrawAmount, setWithdrawAmount] = useState<string>('');
+  const [settling, setSettling] = useState(false);
   const [loading, setLoading] = useState(true);
   const [togglingStatus, setTogglingStatus] = useState(false);
   const [actionInProgress, setActionInProgress] = useState<number | null>(null);
@@ -31,19 +35,39 @@ export const DriverDashboard: React.FC = () => {
   const fetchDriverData = async () => {
     try {
       setLoading(true);
-      const [profileRes, bookingsRes] = await Promise.all([
+      const [profileRes, bookingsRes, balRes, stlRes] = await Promise.all([
         driverApi.getProfile(),
-        bookingApi.getMyBookings()
+        bookingApi.getMyBookings(),
+        driverEarningsApi.getSummary().catch(() => ({ data: null })),
+        driverEarningsApi.getSettlements().catch(() => ({ data: [] })),
       ]);
       setProfile(profileRes.data);
       if (profileRes.data.availability) {
         setIsAvailable(profileRes.data.availability.isAvailable);
       }
       setBookings(bookingsRes.data);
+      if (balRes.data) setBalances(balRes.data);
+      if (stlRes.data) setSettlements(stlRes.data);
     } catch (err) {
       console.error('Failed to load driver dashboard data', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRequestSettlement = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const amt = parseFloat(withdrawAmount);
+    if (!amt || amt <= 0) return;
+    try {
+      setSettling(true);
+      await driverEarningsApi.requestSettlement(amt);
+      setWithdrawAmount('');
+      await fetchDriverData();
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Settlement request failed');
+    } finally {
+      setSettling(false);
     }
   };
 
@@ -119,50 +143,65 @@ export const DriverDashboard: React.FC = () => {
   const verificationStatus = profile?.verificationStatus || 'PENDING';
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-      {/* Header & Status Control */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 text-neutral-100">
+      {/* Centered Driver Hub Card (Screen 2 Aesthetic) */}
+      <div className="bg-[#1C1F1D] rounded-3xl p-6 sm:p-8 shadow-xl border border-[#2B2F2C] flex flex-col items-center text-center space-y-4">
+        <div className="w-20 h-20 rounded-full bg-emerald-500/20 border-2 border-emerald-500 flex items-center justify-center text-2xl font-bold text-emerald-400">
+          {user?.fullName?.charAt(0) || 'D'}
+        </div>
         <div>
-          <div className="flex items-center space-x-3">
-            <h1 className="text-2xl font-bold text-slate-900">Welcome, {user?.fullName}</h1>
-            <span className={`px-3 py-1 text-xs font-semibold rounded-full flex items-center space-x-1 ${
+          <div className="flex items-center justify-center space-x-2">
+            <h1 className="text-2xl font-bold text-white">{user?.fullName}</h1>
+            <span className={`px-2.5 py-0.5 text-[11px] font-semibold rounded-full flex items-center ${
               verificationStatus === 'VERIFIED'
-                ? 'bg-emerald-100 text-emerald-800'
+                ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
                 : verificationStatus === 'REJECTED'
-                ? 'bg-rose-100 text-rose-800'
-                : 'bg-amber-100 text-amber-800'
+                ? 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
+                : 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
             }`}>
-              <ShieldCheck className="w-3.5 h-3.5 mr-1" />
+              <ShieldCheck className="w-3 h-3 mr-1" />
               {verificationStatus}
             </span>
           </div>
-          <p className="text-sm text-slate-500 mt-1">
-            {verificationStatus === 'VERIFIED'
-              ? 'You are fully verified and eligible to receive customer booking requests.'
-              : 'Complete your KYC document verification to become eligible for customer bookings.'}
+          <p className="text-sm text-neutral-400 mt-1 flex items-center justify-center space-x-2">
+            <span className="text-amber-400 font-semibold flex items-center">
+              <Star className="w-4 h-4 fill-amber-400 mr-1" />
+              {(profile?.rating ?? 4.95).toFixed(2)}
+            </span>
+            <span>·</span>
+            <span>{profile?.totalTrips ?? completedTrips.length} trips</span>
           </p>
         </div>
 
-        {/* Availability Toggle */}
-        <div className="flex items-center space-x-4 bg-slate-50 p-3 rounded-xl border border-slate-200">
-          <div className="text-right">
-            <span className="text-xs font-semibold text-slate-500 block uppercase">Duty Status</span>
-            <span className={`text-sm font-bold ${isAvailable ? 'text-emerald-600' : 'text-slate-400'}`}>
-              {isAvailable ? 'Online & Available' : 'Offline'}
-            </span>
+        {/* Full-Width Vibrant Green Go Online / Go Offline Button */}
+        <button
+          onClick={handleToggleAvailability}
+          disabled={togglingStatus || verificationStatus !== 'VERIFIED'}
+          className={`w-full max-w-md py-3.5 rounded-2xl font-bold text-sm transition flex items-center justify-center space-x-2 shadow-lg ${
+            isAvailable
+              ? 'bg-emerald-500 hover:bg-emerald-400 text-[#09130C] shadow-emerald-500/20'
+              : 'bg-[#262A27] hover:bg-[#2F3431] text-white border border-[#383E3A]'
+          } ${verificationStatus !== 'VERIFIED' ? 'opacity-50 cursor-not-allowed' : ''}`}
+          title={verificationStatus !== 'VERIFIED' ? 'Account must be verified by admin first' : 'Toggle online status'}
+        >
+          <Power className="w-4 h-4" />
+          <span>{isAvailable ? 'Online — Tap to Go Offline' : 'Go online'}</span>
+        </button>
+
+        {/* 3 Quick Action Tiles */}
+        <div className="grid grid-cols-3 gap-3 w-full max-w-md pt-2">
+          <Link to="/driver/trips" className="bg-[#242825] hover:bg-[#2C312D] border border-[#323733] rounded-2xl p-3 flex flex-col items-center space-y-1.5 transition">
+            <Navigation className="w-5 h-5 text-white" />
+            <span className="text-xs font-medium text-neutral-300">My Trips</span>
+          </Link>
+          <div className="bg-[#242825] border border-[#323733] rounded-2xl p-3 flex flex-col items-center space-y-1.5">
+            <IndianRupee className="w-5 h-5 text-amber-400" />
+            <span className="text-xs font-medium text-neutral-300">₹{Number(profile?.totalEarnings ?? 0).toFixed(0)}</span>
           </div>
-          <button
-            onClick={handleToggleAvailability}
-            disabled={togglingStatus || verificationStatus !== 'VERIFIED'}
-            className={`p-3 rounded-xl transition flex items-center justify-center ${
-              isAvailable
-                ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                : 'bg-slate-200 hover:bg-slate-300 text-slate-700'
-            } ${verificationStatus !== 'VERIFIED' ? 'opacity-50 cursor-not-allowed' : ''}`}
-            title={verificationStatus !== 'VERIFIED' ? 'Account must be verified by admin first' : 'Toggle online status'}
-          >
-            <Power className="w-5 h-5" />
-          </button>
+          <Link to="/driver/verification" className="bg-[#242825] hover:bg-[#2C312D] border border-[#323733] rounded-2xl p-3 flex flex-col items-center space-y-1.5 transition">
+            <Star className="w-5 h-5 text-emerald-400" />
+            <span className="text-xs font-medium text-neutral-300">KYC & Docs</span>
+          </Link>
         </div>
       </div>
 
@@ -184,6 +223,78 @@ export const DriverDashboard: React.FC = () => {
               Manage KYC Documents <ArrowRight className="w-4 h-4 ml-1" />
             </Link>
           </div>
+        </div>
+      )}
+
+      {/* Four Distinct Financial Balances (Phase 4) */}
+      {balances && (
+        <div className="bg-[#1C1F1D] rounded-3xl p-6 border border-[#2B2F2C] space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-bold text-white">Driver Wallet & Four Balances</h2>
+              <p className="text-xs text-neutral-400">
+                Only Available earnings (from captured trips) are eligible for settlement withdrawal.
+              </p>
+            </div>
+            <form onSubmit={handleRequestSettlement} className="flex items-center space-x-2">
+              <input
+                type="number"
+                min="1"
+                step="0.01"
+                max={balances.available}
+                value={withdrawAmount}
+                onChange={(e) => setWithdrawAmount(e.target.value)}
+                placeholder="Amount (₹)"
+                className="w-32 px-3 py-2 bg-[#242825] border border-[#323733] rounded-xl text-xs text-white"
+              />
+              <button
+                type="submit"
+                disabled={settling || balances.available <= 0}
+                className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-[#09130C] font-bold text-xs rounded-xl transition"
+              >
+                {settling ? 'Requesting...' : 'Withdraw'}
+              </button>
+            </form>
+          </div>
+
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-[#242825] rounded-2xl p-4 border border-[#323733]">
+              <span className="text-[11px] font-semibold text-neutral-400 uppercase">Accrued (Pending Capture)</span>
+              <p className="text-xl font-bold text-amber-400 mt-1">₹{Number(balances.accrued).toFixed(2)}</p>
+            </div>
+            <div className="bg-[#242825] rounded-2xl p-4 border border-emerald-500/30">
+              <span className="text-[11px] font-semibold text-neutral-400 uppercase">Available (Withdrawable)</span>
+              <p className="text-xl font-bold text-emerald-400 mt-1">₹{Number(balances.available).toFixed(2)}</p>
+            </div>
+            <div className="bg-[#242825] rounded-2xl p-4 border border-[#323733]">
+              <span className="text-[11px] font-semibold text-neutral-400 uppercase">Reserved (In Settlement)</span>
+              <p className="text-xl font-bold text-blue-400 mt-1">₹{Number(balances.reserved).toFixed(2)}</p>
+            </div>
+            <div className="bg-[#242825] rounded-2xl p-4 border border-[#323733]">
+              <span className="text-[11px] font-semibold text-neutral-400 uppercase">Settled (Transferred)</span>
+              <p className="text-xl font-bold text-white mt-1">₹{Number(balances.settled).toFixed(2)}</p>
+            </div>
+          </div>
+
+          {settlements.length > 0 && (
+            <div className="pt-2 border-t border-[#2B2F2C] space-y-2">
+              <span className="text-xs font-semibold text-neutral-400 uppercase">Recent Settlements</span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                {settlements.slice(0, 3).map((s) => (
+                  <div key={s.id} className="bg-[#242825] rounded-xl p-3 text-xs flex items-center justify-between border border-[#323733]">
+                    <div>
+                      <span className="font-bold text-white">₹{Number(s.totalAmount).toFixed(2)}</span>
+                      <span className="block text-[10px] text-neutral-400">{new Date(s.initiatedAt).toLocaleDateString()}</span>
+                    </div>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                      s.status === 'COMPLETED' ? 'bg-emerald-500/15 text-emerald-400' :
+                      s.status === 'FAILED' ? 'bg-rose-500/15 text-rose-400' : 'bg-amber-500/15 text-amber-400'
+                    }`}>{s.status}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

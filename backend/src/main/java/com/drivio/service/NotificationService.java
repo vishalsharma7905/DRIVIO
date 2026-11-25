@@ -4,6 +4,7 @@ import com.drivio.entity.Notification;
 import com.drivio.entity.User;
 import com.drivio.enums.NotificationType;
 import com.drivio.exception.ResourceNotFoundException;
+import com.drivio.notification.ExternalNotificationProvider;
 import com.drivio.repository.NotificationRepository;
 import com.drivio.repository.UserRepository;
 import org.slf4j.Logger;
@@ -24,11 +25,17 @@ public class NotificationService {
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final ExternalNotificationProvider externalNotificationProvider;
 
-    public NotificationService(NotificationRepository notificationRepository, UserRepository userRepository, SimpMessagingTemplate messagingTemplate) {
+    public NotificationService(
+            NotificationRepository notificationRepository,
+            UserRepository userRepository,
+            SimpMessagingTemplate messagingTemplate,
+            ExternalNotificationProvider externalNotificationProvider) {
         this.notificationRepository = notificationRepository;
         this.userRepository = userRepository;
         this.messagingTemplate = messagingTemplate;
+        this.externalNotificationProvider = externalNotificationProvider;
     }
 
     @Transactional
@@ -52,6 +59,15 @@ public class NotificationService {
             messagingTemplate.convertAndSend("/topic/notifications/" + userId, payload);
         } catch (Exception e) {
             logger.warn("Could not dispatch WebSocket notification to user {}: {}", userId, e.getMessage());
+        }
+
+        // Dispatch SMS via configured provider for critical trip/payment events
+        if (user.getPhoneNumber() != null && !user.getPhoneNumber().isBlank()) {
+            try {
+                externalNotificationProvider.sendSms(user.getPhoneNumber(), "[DRIVIO] " + title + ": " + message);
+            } catch (Exception e) {
+                logger.warn("External SMS dispatch failed for user {}: {}", userId, e.getMessage());
+            }
         }
 
         return saved;

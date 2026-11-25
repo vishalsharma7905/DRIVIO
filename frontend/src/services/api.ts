@@ -5,8 +5,12 @@ import {
   DriverProfile,
   DriverDocument,
   DriverAvailability,
+  DriverBalanceSummary,
+  DriverSettlementRecord,
   BookingResponse,
   PricingConfiguration,
+  VehiclePricingConfiguration,
+  PricingAuditLog,
   FareEstimate,
   DriverRecommendation,
   AiExtractionResult,
@@ -87,6 +91,13 @@ export const driverApi = {
   getDocuments: () => api.get<DriverDocument[]>('/drivers/documents'),
 };
 
+export const driverEarningsApi = {
+  getSummary: () => api.get<DriverBalanceSummary>('/drivers/earnings/summary'),
+  getSettlements: () => api.get<DriverSettlementRecord[]>('/drivers/earnings/settlements'),
+  requestSettlement: (amount: number) => api.post<DriverSettlementRecord>('/drivers/earnings/settlements', { amount }),
+  retrySettlement: (id: number) => api.post<DriverSettlementRecord>(`/drivers/earnings/settlements/${id}/retry`),
+};
+
 // Booking Endpoints
 export const bookingApi = {
   create: (data: any) => api.post<BookingResponse>('/bookings', data),
@@ -97,7 +108,8 @@ export const bookingApi = {
   driverArrived: (id: number) => api.post<BookingResponse>(`/bookings/${id}/arrived`),
   startTrip: (id: number) => api.post<BookingResponse>(`/bookings/${id}/start`),
   completeTrip: (id: number) => api.post<BookingResponse>(`/bookings/${id}/complete`),
-  cancel: (id: number, data: { reason: string }) => api.post<BookingResponse>(`/bookings/${id}/cancel`, data),
+  cancel: (id: number, data: { reason: string }) =>
+    api.post<BookingResponse>(`/bookings/${id}/cancel`, { cancellationReason: data.reason }),
 };
 
 // Pricing Endpoints
@@ -111,6 +123,19 @@ export const pricingApi = {
   getConfigurations: () => api.get<PricingConfiguration[]>('/pricing/configurations'),
   updateConfiguration: (id: number, data: Partial<PricingConfiguration>) =>
     api.put<PricingConfiguration>(`/pricing/configurations/${id}`, data),
+  getVehicleConfigurations: () => api.get<VehiclePricingConfiguration[]>('/pricing/vehicles'),
+  getAllVehicleEstimates: (data: {
+    serviceType: ServiceType;
+    vehicleType: VehicleType;
+    estimatedDistanceKm: number;
+    estimatedDurationMinutes: number;
+  }) => api.post<FareEstimate[]>('/pricing/vehicles/estimates', data),
+  updateVehicleConfiguration: (id: number, data: Partial<VehiclePricingConfiguration>) =>
+    api.put<VehiclePricingConfiguration>(`/pricing/vehicles/${id}`, data),
+  getAuditLogs: () => api.get<PricingAuditLog[]>('/pricing/audit-logs'),
+  getProfileVersions: (filter?: string) => api.get<any[]>('/admin/pricing/versions', { params: filter ? { filter } : undefined }),
+  publishProfileVersion: (versionId: number) => api.post(`/admin/pricing/versions/${versionId}/publish`),
+  retireProfileVersion: (versionId: number) => api.post(`/admin/pricing/versions/${versionId}/retire`),
 };
 
 // Recommendation Endpoints
@@ -153,7 +178,7 @@ export const paymentApi = {
     cardLastFour?: string;
     upiId?: string;
   }) => api.post<PaymentReceipt>('/payments/process', data),
-  getReceipt: (bookingId: number) => api.get<PaymentReceipt>(`/payments/receipt/${bookingId}`),
+  getReceipt: (bookingId: number) => api.get<PaymentReceipt>(`/payments/booking/${bookingId}`),
 };
 
 // Review Endpoints

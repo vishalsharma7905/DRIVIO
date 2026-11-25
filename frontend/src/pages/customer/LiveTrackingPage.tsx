@@ -105,14 +105,15 @@ export const LiveTrackingPage: React.FC = () => {
       const map = L.map(mapContainerRef.current).setView([pickupLat, pickupLng], 12);
       mapInstanceRef.current = map;
 
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      const tileUrl = import.meta.env.VITE_MAP_TILE_URL || 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+      L.tileLayer(tileUrl, {
         attribution: '© OpenStreetMap contributors',
       }).addTo(map);
 
       // Pickup Marker (Green)
       const pickupIcon = L.divIcon({
         className: 'custom-pin',
-        html: `<div style="background-color: #10B981; width: 14px; height: 14px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 10px rgba(0,0,0,0.5);"></div>`,
+        html: `<div style="background-color: #22C55E; width: 14px; height: 14px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 12px rgba(34,197,94,0.8);"></div>`,
         iconSize: [14, 14],
       });
       L.marker([pickupLat, pickupLng], { icon: pickupIcon })
@@ -120,38 +121,50 @@ export const LiveTrackingPage: React.FC = () => {
         .bindPopup(`<b>Pickup:</b> ${trackData.pickupAddress || 'Pickup Point'}`)
         .openPopup();
 
-      // Destination Marker (Red)
+      // Destination Marker (Amber)
       const destIcon = L.divIcon({
         className: 'custom-pin',
-        html: `<div style="background-color: #EF4444; width: 14px; height: 14px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 10px rgba(0,0,0,0.5);"></div>`,
+        html: `<div style="background-color: #F59E0B; width: 14px; height: 14px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 12px rgba(245,158,11,0.7);"></div>`,
         iconSize: [14, 14],
       });
       L.marker([destLat, destLng], { icon: destIcon })
         .addTo(map)
         .bindPopup(`<b>Destination:</b> ${trackData.destinationAddress || 'Destination'}`);
 
-      // Driver Position Marker (Blue with pulsing effect)
+      // Driver Position Marker (Emerald with glow)
       const driverLat = trackData.driverLatitude || pickupLat;
       const driverLng = trackData.driverLongitude || pickupLng;
 
       const driverIcon = L.divIcon({
         className: 'driver-marker',
-        html: `<div style="background-color: #3B82F6; width: 18px; height: 18px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 12px #3B82F6;"></div>`,
-        iconSize: [18, 18],
+        html: `<div style="background-color: #22C55E; width: 20px; height: 20px; border-radius: 50%; border: 3px solid #ffffff; box-shadow: 0 0 16px #22C55E;"></div>`,
+        iconSize: [20, 20],
       });
 
       const driverMarker = L.marker([driverLat, driverLng], { icon: driverIcon }).addTo(map);
       driverMarker.bindPopup(`<b>${trackData.driverName || 'Driver'}</b><br/>Speed: ${trackData.speed || 30} km/h`);
       driverMarkerRef.current = driverMarker;
 
-      // Draw Route Polyline connecting points
+      // Draw Route Polyline using OSRM road-snapped geometry (with straight-line fallback)
+      let routePoints: [number, number][] = [
+        [pickupLat, pickupLng],
+        [driverLat, driverLng],
+        [destLat, destLng],
+      ];
+      try {
+        const routeRes = await api.get<{ geometry?: [number, number][] }>(
+          `/routing/route?pickupLat=${pickupLat}&pickupLng=${pickupLng}&destLat=${destLat}&destLng=${destLng}`
+        );
+        if (routeRes.data?.geometry && routeRes.data.geometry.length >= 2) {
+          routePoints = routeRes.data.geometry;
+        }
+      } catch {
+        // fallback to 3-point line
+      }
+
       const routeLine = L.polyline(
-        [
-          [pickupLat, pickupLng],
-          [driverLat, driverLng],
-          [destLat, destLng],
-        ],
-        { color: '#3B82F6', weight: 4, dashArray: '6, 8', opacity: 0.8 }
+        routePoints,
+        { color: '#22C55E', weight: 5, opacity: 0.9 }
       ).addTo(map);
 
       map.fitBounds(routeLine.getBounds(), { padding: [50, 50] });

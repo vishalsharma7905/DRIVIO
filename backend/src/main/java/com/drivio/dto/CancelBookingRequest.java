@@ -1,10 +1,12 @@
 package com.drivio.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import jakarta.validation.constraints.NotBlank;
 
 public class CancelBookingRequest {
 
     @NotBlank(message = "Cancellation reason is required")
+    @JsonAlias("reason")
     private String cancellationReason;
 
     public CancelBookingRequest() {}

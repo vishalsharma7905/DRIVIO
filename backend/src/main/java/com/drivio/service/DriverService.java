@@ -18,6 +18,7 @@ import com.drivio.repository.DriverAvailabilityRepository;
 import com.drivio.repository.DriverDocumentRepository;
 import com.drivio.repository.DriverProfileRepository;
 import com.drivio.repository.UserRepository;
+import com.drivio.storage.StorageService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
@@ -47,6 +48,7 @@ public class DriverService {
     private final DriverAvailabilityRepository driverAvailabilityRepository;
     private final DriverDocumentRepository driverDocumentRepository;
     private final UserRepository userRepository;
+    private final StorageService storageService;
 
     @Value("${drivio.storage.upload-dir:./uploads}")
     private String uploadDir;
@@ -55,11 +57,13 @@ public class DriverService {
             DriverProfileRepository driverProfileRepository,
             DriverAvailabilityRepository driverAvailabilityRepository,
             DriverDocumentRepository driverDocumentRepository,
-            UserRepository userRepository) {
+            UserRepository userRepository,
+            StorageService storageService) {
         this.driverProfileRepository = driverProfileRepository;
         this.driverAvailabilityRepository = driverAvailabilityRepository;
         this.driverDocumentRepository = driverDocumentRepository;
         this.userRepository = userRepository;
+        this.storageService = storageService;
     }
 
     @Transactional(readOnly = true)
@@ -174,20 +178,11 @@ public class DriverService {
         DriverProfile profile = driverProfileRepository.findByUserId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Driver profile not found"));
 
-        File dir = new File(uploadDir);
-        if (!dir.exists()) dir.mkdirs();
-
-        String fileName = UUID.randomUUID() + extension;
-        Path targetPath = Paths.get(uploadDir).resolve(fileName).normalize();
-
-        // Verify no path traversal outside uploadDir
-        if (!targetPath.startsWith(Paths.get(uploadDir).normalize())) {
-            throw new BadRequestException("Security violation: Invalid upload file path");
-        }
-
-        Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
-
-        String fileUrl = "/api/drivers/documents/file/" + fileName;
+        String storedPath = storageService.store(file, "driver-" + profile.getId());
+        String fileName = storedPath.substring(storedPath.lastIndexOf("/") + 1);
+        String fileUrl = "S3".equals(storageService.getProviderName())
+                ? storedPath
+                : "/api/drivers/documents/file/" + fileName;
 
         // If driving license, also update licence document url on profile
         if ("DRIVING_LICENCE".equalsIgnoreCase(documentType)) {

@@ -6,14 +6,18 @@ import {
   Compass, Navigation, AlertCircle, Star, Info
 } from 'lucide-react';
 import api from '../../services/api';
+import { AddressAutocompleteInput } from '../../components/AddressAutocompleteInput';
+import { RoutePreviewMap } from '../../components/RoutePreviewMap';
 import { 
   ServiceType, VehicleType, FareEstimate, 
   DriverRecommendation, AiExtractionResult 
 } from '../../types';
 
-export const CreateBookingPage: React.FC = () => {
+export const CreateBookingPage: React.FC<{ defaultMode?: 'RIDE' | 'DRIVER' }> = ({ defaultMode = 'RIDE' }) => {
   const navigate = useNavigate();
   const location = useLocation();
+
+  const [bookingMode, setBookingMode] = useState<'RIDE' | 'DRIVER'>(defaultMode);
 
   // AI assistant state
   const [aiPrompt, setAiPrompt] = useState('');
@@ -21,7 +25,7 @@ export const CreateBookingPage: React.FC = () => {
   const [aiNotice, setAiNotice] = useState<string | null>(null);
 
   // Booking Form State
-  const [serviceType, setServiceType] = useState<ServiceType>('OWN_CAR_DRIVER');
+  const [serviceType, setServiceType] = useState<ServiceType>(defaultMode === 'RIDE' ? 'ONE_WAY' : 'OWN_CAR_DRIVER');
   const [vehicleType, setVehicleType] = useState<VehicleType>('SEDAN');
   const [pickupAddress, setPickupAddress] = useState('Connaught Place, New Delhi');
   const [pickupLat, setPickupLat] = useState<number>(28.6280);
@@ -37,16 +41,27 @@ export const CreateBookingPage: React.FC = () => {
   const [pickupTime, setPickupTime] = useState<string>('09:00');
   const [estimatedDistance, setEstimatedDistance] = useState<number>(25.0);
   const [estimatedDuration, setEstimatedDuration] = useState<number>(50);
+  const [serviceSubtype, setServiceSubtype] = useState<string>('ONE_WAY');
+  const [luggageCount, setLuggageCount] = useState<number>(0);
+  const [routeProvider, setRouteProvider] = useState<string | null>(null);
+  const [routeGeometry, setRouteGeometry] = useState<[number, number][]>([]);
   const [specialInstructions, setSpecialInstructions] = useState('');
 
   // Fare and Driver Recommendation State
   const [fareEstimate, setFareEstimate] = useState<FareEstimate | null>(null);
+  const [vehicleEstimates, setVehicleEstimates] = useState<FareEstimate[]>([]);
   const [estimatingFare, setEstimatingFare] = useState(false);
   const [recommendations, setRecommendations] = useState<DriverRecommendation[]>([]);
   const [loadingDrivers, setLoadingDrivers] = useState(false);
   const [selectedDriverId, setSelectedDriverId] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Sync mode when route switches between /ride and /book
+  useEffect(() => {
+    setBookingMode(defaultMode);
+    setServiceType(defaultMode === 'RIDE' ? 'ONE_WAY' : 'OWN_CAR_DRIVER');
+  }, [defaultMode]);
 
   // Handle prefilled state from landing page AI or query params
   useEffect(() => {
@@ -73,16 +88,47 @@ export const CreateBookingPage: React.FC = () => {
     fetchDriverRecommendations();
   }, [serviceType, vehicleType, pickupLat, pickupLng]);
 
+  // Fetch road-snapped OSRM route distance & duration when coordinates change
+  useEffect(() => {
+    const fetchRoute = async () => {
+      try {
+        const res = await api.get<{ distanceKm: number; durationMinutes: number; provider: string; geometry?: [number, number][] }>(
+          `/routing/route?pickupLat=${pickupLat}&pickupLng=${pickupLng}&destLat=${destLat}&destLng=${destLng}`
+        );
+        if (res.data?.distanceKm > 0) {
+          setEstimatedDistance(res.data.distanceKm);
+          setEstimatedDuration(res.data.durationMinutes);
+          setRouteProvider(res.data.provider);
+          if (res.data.geometry && res.data.geometry.length >= 2) {
+            setRouteGeometry(res.data.geometry);
+          }
+        }
+      } catch {
+        // Keep manual/default values if routing service is unreachable
+      }
+    };
+    fetchRoute();
+  }, [pickupLat, pickupLng, destLat, destLng]);
+
   const fetchFareEstimate = async () => {
     setEstimatingFare(true);
     try {
-      const res = await api.post<FareEstimate>('/pricing/estimate', {
-        serviceType,
-        vehicleType,
-        estimatedDistanceKm: estimatedDistance,
-        estimatedDurationMinutes: estimatedDuration,
-      });
-      setFareEstimate(res.data);
+      const [singleRes, allRes] = await Promise.all([
+        api.post<FareEstimate>('/pricing/estimate', {
+          serviceType,
+          vehicleType,
+          estimatedDistanceKm: estimatedDistance,
+          estimatedDurationMinutes: estimatedDuration,
+        }),
+        api.post<FareEstimate[]>('/pricing/vehicles/estimates', {
+          serviceType,
+          vehicleType,
+          estimatedDistanceKm: estimatedDistance,
+          estimatedDurationMinutes: estimatedDuration,
+        }),
+      ]);
+      setFareEstimate(singleRes.data);
+      setVehicleEstimates(allRes.data);
     } catch (e) {
       console.error('Fare estimate error:', e);
     } finally {
@@ -129,12 +175,39 @@ export const CreateBookingPage: React.FC = () => {
       if (data.destinationHint) setDestinationAddress(data.destinationHint);
 
       setAiNotice(
-        `AI successfully structured your journey (${data.fallbackUsed ? 'NLP Rules' : 'Llama 3.1 8B'}). All fields updated below.`
+        `AI successfully structured your journey (${data.fallbackUsed ? 'NLP Rules' : 'Llama 3.2 1B'}). All fields updated below.`
       );
     } catch (err: any) {
       setAiNotice('Could not extract requirements via AI. You can enter details manually.');
     } finally {
       setAiLoading(false);
+    }
+  };
+
+  const handleMapPick = async (target: 'PICKUP' | 'DEST', lat: number, lng: number) => {
+    try {
+      const res = await api.get<{ displayName: string }>(`/routing/reverse?lat=${lat}&lng=${lng}`);
+      const addr = res.data?.displayName || `Pinned (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
+      if (target === 'PICKUP') {
+        setPickupLat(lat);
+        setPickupLng(lng);
+        setPickupAddress(addr);
+      } else {
+        setDestLat(lat);
+        setDestLng(lng);
+        setDestinationAddress(addr);
+      }
+    } catch {
+      const fallback = `Pinned (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
+      if (target === 'PICKUP') {
+        setPickupLat(lat);
+        setPickupLng(lng);
+        setPickupAddress(fallback);
+      } else {
+        setDestLat(lat);
+        setDestLng(lng);
+        setDestinationAddress(fallback);
+      }
     }
   };
 
@@ -173,6 +246,8 @@ export const CreateBookingPage: React.FC = () => {
         scheduledPickupTime: scheduledDateTime,
         estimatedDistanceKm: estimatedDistance,
         estimatedDurationMinutes: estimatedDuration,
+        serviceSubtype: serviceType === 'OWN_CAR_DRIVER' ? serviceSubtype : undefined,
+        luggageCount: serviceType === 'CAR_LUGGAGE_DELIVERY' ? luggageCount : 0,
         specialInstructions,
         requestedDriverId: selectedDriverId,
       };
@@ -191,18 +266,44 @@ export const CreateBookingPage: React.FC = () => {
     <div className="min-h-screen bg-slate-950 text-slate-100 py-10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
         
-        {/* Header */}
-        <div>
-          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 text-xs font-semibold mb-2">
-            <Car className="w-3.5 h-3.5" />
-            <span>Driver Booking Wizard</span>
+        {/* Header & Mode Switcher */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div>
+            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-semibold mb-2">
+              <Car className="w-3.5 h-3.5" />
+              <span>{bookingMode === 'RIDE' ? 'Normal Ride Booking' : 'Personal Chauffeur & Delivery'}</span>
+            </div>
+            <h1 className="text-3xl font-extrabold text-white tracking-tight">
+              {bookingMode === 'RIDE' ? 'Book a Normal Ride' : 'Book a Professional Chauffeur'}
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-400 mt-1">
+              {bookingMode === 'RIDE'
+                ? 'Choose Bike, Auto, Hatchback, Sedan, Premium Sedan, or SUV with live Delhi NCR fares.'
+                : 'Hire a verified chauffeur for your own car or book Car + Luggage Delivery.'}
+              {routeProvider && <span className="ml-2 text-emerald-400">({routeProvider} routing active)</span>}
+            </p>
           </div>
-          <h1 className="text-3xl font-extrabold text-white tracking-tight">
-            Book a Professional Chauffeur
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-400 mt-1">
-            Choose your service type, set your route, inspect the transparent fare breakdown, and select your top-matched driver.
-          </p>
+
+          <div className="inline-flex p-1 rounded-2xl bg-[#1C1F1D] border border-[#2F3431]">
+            <button
+              type="button"
+              onClick={() => { setBookingMode('RIDE'); setServiceType('ONE_WAY'); }}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
+                bookingMode === 'RIDE' ? 'bg-emerald-500 text-[#09130C]' : 'text-slate-300 hover:text-white'
+              }`}
+            >
+              Book a Ride (Bike / Auto / Cab)
+            </button>
+            <button
+              type="button"
+              onClick={() => { setBookingMode('DRIVER'); setServiceType('OWN_CAR_DRIVER'); }}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
+                bookingMode === 'DRIVER' ? 'bg-emerald-500 text-[#09130C]' : 'text-slate-300 hover:text-white'
+              }`}
+            >
+              Hire a Driver (Own Car)
+            </button>
+          </div>
         </div>
 
         {/* AI Assistant Banner */}
@@ -210,7 +311,7 @@ export const CreateBookingPage: React.FC = () => {
           <div className="flex items-center space-x-2 mb-3">
             <Sparkles className="w-4 h-4 text-indigo-400" />
             <h2 className="text-xs font-bold text-white uppercase tracking-wider">
-              Smart AI Prompt Assistant (Llama 3.1 8B)
+              Smart AI Prompt Assistant (Llama 3.2 1B)
             </h2>
           </div>
 
@@ -270,13 +371,18 @@ export const CreateBookingPage: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {[
-                  { type: 'OWN_CAR_DRIVER', label: 'Own-Car Chauffeur', desc: 'Driver for your personal vehicle' },
-                  { type: 'ONE_WAY', label: 'One-Way Drop', desc: 'Single point-to-point drop-off' },
-                  { type: 'ROUND_TRIP', label: 'Round-Trip Service', desc: 'Return trip with waiting time' },
-                  { type: 'HOURLY', label: 'Hourly Chauffeur', desc: 'Hire by 4/8/12 hours block' },
-                  { type: 'OUTSTATION', label: 'Outstation Roadtrip', desc: 'Intercity and highway trips' },
-                ].map((s) => (
+                {(bookingMode === 'RIDE'
+                  ? [
+                      { type: 'ONE_WAY', label: 'One-Way Ride', desc: 'Single point-to-point drop-off' },
+                      { type: 'ROUND_TRIP', label: 'Round-Trip Ride', desc: 'Return trip with waiting time' },
+                      { type: 'HOURLY', label: 'Hourly Rental Ride', desc: 'Multiple stops by 4/8/12 hours' },
+                      { type: 'OUTSTATION', label: 'Outstation Roadtrip', desc: 'Intercity and highway trips' },
+                    ]
+                  : [
+                      { type: 'OWN_CAR_DRIVER', label: 'Own-Car Chauffeur', desc: 'Driver for your personal vehicle' },
+                      { type: 'CAR_LUGGAGE_DELIVERY', label: 'Car + Luggage Delivery', desc: 'Verified vehicle & luggage relocation with OTP' },
+                    ]
+                ).map((s) => (
                   <button
                     key={s.type}
                     type="button"
@@ -292,6 +398,45 @@ export const CreateBookingPage: React.FC = () => {
                   </button>
                 ))}
               </div>
+
+              {serviceType === 'OWN_CAR_DRIVER' && (
+                <div className="pt-2 border-t border-slate-800/70">
+                  <label className="text-xs font-medium text-slate-300 block mb-1.5">Own-Car Hiring Type</label>
+                  <select
+                    value={serviceSubtype}
+                    onChange={(e) => setServiceSubtype(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="ONE_WAY">One-Way Driver</option>
+                    <option value="ROUND_TRIP">Round-Trip Driver</option>
+                    <option value="HOURLY">Hourly Driver</option>
+                    <option value="FULL_DAY">Full-Day Chauffeur</option>
+                    <option value="AIRPORT_TRANSFER">Airport Transfer</option>
+                    <option value="EVENT_DRIVER">Event / Valet Driver</option>
+                    <option value="NIGHT_DRIVER">Night Safe Driver</option>
+                    <option value="OUTSTATION">Outstation Chauffeur</option>
+                  </select>
+                </div>
+              )}
+
+              {serviceType === 'CAR_LUGGAGE_DELIVERY' && (
+                <div className="pt-2 border-t border-slate-800/70 flex items-center justify-between gap-4">
+                  <div className="flex-1">
+                    <label className="text-xs font-medium text-slate-300 block mb-1">Luggage Bags / Suitcases</label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={20}
+                      value={luggageCount}
+                      onChange={(e) => setLuggageCount(Math.max(0, Number(e.target.value)))}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div className="text-[11px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-3 py-2">
+                    Includes Pickup & Destination OTP + Odometer & Fuel Handover Check
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Step 2: Vehicle Type */}
@@ -301,28 +446,87 @@ export const CreateBookingPage: React.FC = () => {
                 <h3 className="text-sm font-bold text-white">Vehicle Category</h3>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {[
+                  { type: 'BIKE', label: 'Bike', sub: 'Quick 1-rider commute' },
+                  { type: 'AUTO', label: 'Auto', sub: 'City 3-wheeler' },
                   { type: 'HATCHBACK', label: 'Hatchback', sub: 'Swift, i10, Baleno' },
                   { type: 'SEDAN', label: 'Sedan', sub: 'City, Dzire, Verna' },
+                  { type: 'PREMIUM_SEDAN', label: 'Premium Sedan', sub: 'Civic, Octavia, Camry' },
                   { type: 'SUV', label: 'SUV', sub: 'Creta, Scorpio, XUV' },
-                  { type: 'LUXURY', label: 'Luxury', sub: 'BMW, Audi, Mercedes' },
-                ].map((v) => (
-                  <button
-                    key={v.type}
-                    type="button"
-                    onClick={() => setVehicleType(v.type as VehicleType)}
-                    className={`p-3 rounded-xl border text-center transition-all ${
-                      vehicleType === v.type
-                        ? 'bg-blue-600/10 border-blue-500 text-white ring-1 ring-blue-500'
-                        : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700'
-                    }`}
-                  >
-                    <div className="font-bold text-xs text-white">{v.label}</div>
-                    <div className="text-[10px] text-slate-400 mt-1 truncate">{v.sub}</div>
-                  </button>
-                ))}
+                ].map((v) => {
+                  const est = vehicleEstimates.find((e) => e.vehicleType === v.type);
+                  const topArrivalMins =
+                    recommendations.length > 0 && recommendations[0].distanceKm != null
+                      ? Math.max(2, Math.round((recommendations[0].distanceKm / 25) * 60))
+                      : null;
+                  return (
+                    <button
+                      key={v.type}
+                      type="button"
+                      onClick={() => setVehicleType(v.type as VehicleType)}
+                      className={`p-3 rounded-xl border text-left transition-all ${
+                        vehicleType === v.type
+                          ? 'bg-emerald-500/10 border-emerald-500 text-white ring-1 ring-emerald-500'
+                          : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="font-bold text-xs text-white">{v.label}</div>
+                        {est && (
+                          <span className="text-xs font-extrabold text-emerald-400">
+                            ₹{est.totalEstimatedFare}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[10px] text-slate-400 mt-1 truncate">{v.sub}</div>
+                      <div className="text-[10px] text-slate-500 mt-1 flex items-center justify-between">
+                        <span>{estimatedDistance} km · {estimatedDuration}m</span>
+                        {topArrivalMins !== null && <span>~{topArrivalMins}m away</span>}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
+
+              {serviceType === 'OWN_CAR_DRIVER' && (
+                <div className="pt-2 border-t border-slate-800/70">
+                  <label className="text-xs font-medium text-slate-300 block mb-1.5">Own-Car Hiring Type</label>
+                  <select
+                    value={serviceSubtype}
+                    onChange={(e) => setServiceSubtype(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="ONE_WAY">One-Way Driver</option>
+                    <option value="ROUND_TRIP">Round-Trip Driver</option>
+                    <option value="HOURLY">Hourly Driver</option>
+                    <option value="FULL_DAY">Full-Day Chauffeur</option>
+                    <option value="AIRPORT_TRANSFER">Airport Transfer</option>
+                    <option value="EVENT_DRIVER">Event / Valet Driver</option>
+                    <option value="NIGHT_DRIVER">Night Safe Driver</option>
+                    <option value="OUTSTATION">Outstation Chauffeur</option>
+                  </select>
+                </div>
+              )}
+
+              {serviceType === 'CAR_LUGGAGE_DELIVERY' && (
+                <div className="pt-2 border-t border-slate-800/70 flex items-center justify-between gap-4">
+                  <div className="flex-1">
+                    <label className="text-xs font-medium text-slate-300 block mb-1">Luggage Bags / Suitcases</label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={20}
+                      value={luggageCount}
+                      onChange={(e) => setLuggageCount(Math.max(0, Number(e.target.value)))}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div className="text-[11px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-3 py-2">
+                    Includes Pickup & Destination OTP + Odometer & Fuel Handover Check
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Step 3: Route & Schedule */}
@@ -346,34 +550,46 @@ export const CreateBookingPage: React.FC = () => {
                       <span>Use Current Location</span>
                     </button>
                   </div>
-                  <div className="relative">
-                    <MapPin className="w-4 h-4 text-emerald-400 absolute left-3 top-3" />
-                    <input
-                      type="text"
-                      required
-                      value={pickupAddress}
-                      onChange={(e) => setPickupAddress(e.target.value)}
-                      placeholder="Enter pickup address"
-                      className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-9 pr-3 py-2.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
+                  <AddressAutocompleteInput
+                    value={pickupAddress}
+                    onChange={setPickupAddress}
+                    onSelectLocation={(addr, lat, lng) => {
+                      setPickupAddress(addr);
+                      setPickupLat(lat);
+                      setPickupLng(lng);
+                    }}
+                    placeholder="Search pickup address (OpenStreetMap Nominatim)"
+                    iconColorClass="text-emerald-400"
+                  />
                 </div>
 
                 {/* Destination address */}
                 <div>
                   <label className="block text-xs font-medium text-slate-300 mb-1">Destination Address</label>
-                  <div className="relative">
-                    <MapPin className="w-4 h-4 text-rose-400 absolute left-3 top-3" />
-                    <input
-                      type="text"
-                      required
-                      value={destinationAddress}
-                      onChange={(e) => setDestinationAddress(e.target.value)}
-                      placeholder="Enter destination address"
-                      className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-9 pr-3 py-2.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
+                  <AddressAutocompleteInput
+                    value={destinationAddress}
+                    onChange={setDestinationAddress}
+                    onSelectLocation={(addr, lat, lng) => {
+                      setDestinationAddress(addr);
+                      setDestLat(lat);
+                      setDestLng(lng);
+                    }}
+                    placeholder="Search destination address (OpenStreetMap Nominatim)"
+                    iconColorClass="text-amber-400"
+                  />
                 </div>
+
+                {/* Interactive OpenStreetMap Route Preview */}
+                <RoutePreviewMap
+                  pickupLat={pickupLat}
+                  pickupLng={pickupLng}
+                  pickupAddress={pickupAddress}
+                  destLat={destLat}
+                  destLng={destLng}
+                  destAddress={destinationAddress}
+                  routeGeometry={routeGeometry}
+                  onMapPick={handleMapPick}
+                />
 
                 {/* Date & Time Row */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -485,9 +701,18 @@ export const CreateBookingPage: React.FC = () => {
                     <span className="text-slate-200">₹{fareEstimate.distanceFare}</span>
                   </div>
                   <div className="flex justify-between text-slate-400">
-                    <span>Duration Charge ({fareEstimate.estimatedDurationMinutes} mins):</span>
+                    <span>
+                      Duration Charge ({fareEstimate.estimatedDurationMinutes} mins
+                      {fareEstimate.perMinuteRate != null ? ` × ₹${fareEstimate.perMinuteRate}` : ''}):
+                    </span>
                     <span className="text-slate-200">₹{fareEstimate.durationFare}</span>
                   </div>
+                  {fareEstimate.minFareApplied && (
+                    <div className="flex justify-between text-amber-400">
+                      <span>Minimum Fare Applied:</span>
+                      <span>Yes (v{fareEstimate.pricingVersion ?? 1})</span>
+                    </div>
+                  )}
                   {fareEstimate.additionalCharges > 0 && (
                     <div className="flex justify-between text-slate-400">
                       <span>Service Allowance:</span>
@@ -604,23 +829,23 @@ export const CreateBookingPage: React.FC = () => {
                 </div>
               )}
 
-              {/* Confirm Booking CTA */}
+              {/* Confirm Booking CTA (Screen 3 Pill Style) */}
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full mt-4 py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 text-white text-xs sm:text-sm font-bold rounded-xl flex items-center justify-center space-x-2 shadow-xl shadow-blue-600/30 transition-all"
+                className="drivio-pill-cta w-full mt-4 p-1.5 pr-4 bg-white hover:bg-neutral-100 disabled:opacity-50 text-neutral-900 text-xs sm:text-sm font-bold rounded-full flex items-center justify-between shadow-xl transition-all"
               >
-                {submitting ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    <span>Confirming Booking...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>Confirm & Book Driver</span>
+                <span className="w-10 h-10 rounded-full bg-emerald-500 text-[#09130C] flex items-center justify-center">
+                  {submitting ? (
+                    <div className="w-4 h-4 border-2 border-[#09130C] border-t-transparent rounded-full animate-spin"></div>
+                  ) : (
                     <ArrowRight className="w-4 h-4" />
-                  </>
-                )}
+                  )}
+                </span>
+                <span className="flex-1 text-center">
+                  {submitting ? 'Confirming Booking...' : 'Confirm & Book Driver'}
+                </span>
+                <span className="w-6"></span>
               </button>
             </div>
 

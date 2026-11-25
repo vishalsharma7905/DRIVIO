@@ -2,7 +2,223 @@
 
 @layer base {
   body {
-    @apply bg-slate-50 text-slate-900 font-sans antialiased;
+    font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
     min-height: 100vh;
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
+}
+
+/* ============================================================
+   DARK MODE (Default — Matte Charcoal + Emerald Green + Amber)
+   ============================================================ */
+html[data-theme="dark"] body,
+html:not([data-theme]) body {
+  background-color: #141615;
+  color: #f3f4f6;
+}
+
+html[data-theme="dark"] .drivio-shell,
+html:not([data-theme]) .drivio-shell {
+  background-color: #141615;
+  color: #f3f4f6;
+}
+
+/* Dark surfaces for pages written with dark classes */
+html[data-theme="dark"] .bg-slate-950,
+html:not([data-theme]) .bg-slate-950 {
+  background-color: #141615 !important;
+}
+html[data-theme="dark"] .bg-slate-900,
+html:not([data-theme]) .bg-slate-900 {
+  background-color: #1c1f1d !important;
+}
+html[data-theme="dark"] .bg-slate-800,
+html[data-theme="dark"] .bg-slate-800\/80,
+html:not([data-theme]) .bg-slate-800,
+html:not([data-theme]) .bg-slate-800\/80 {
+  background-color: #242825 !important;
+}
+html[data-theme="dark"] .border-slate-800,
+html[data-theme="dark"] .border-slate-700,
+html:not([data-theme]) .border-slate-800,
+html:not([data-theme]) .border-slate-700 {
+  border-color: #2f3431 !important;
+}
+
+/* Convert Admin & Driver light-mode cards/inputs/text cleanly into Dark Mode */
+html[data-theme="dark"] .bg-white:not(.drivio-pill-cta),
+html:not([data-theme]) .bg-white:not(.drivio-pill-cta) {
+  background-color: #1c1f1d !important;
+  color: #f3f4f6;
+}
+html[data-theme="dark"] .bg-slate-50,
+html:not([data-theme]) .bg-slate-50 {
+  background-color: #242825 !important;
+}
+html[data-theme="dark"] .bg-slate-100,
+html:not([data-theme]) .bg-slate-100 {
+  background-color: #2a2f2c !important;
+}
+html[data-theme="dark"] .hover\:bg-slate-50:hover,
+html[data-theme="dark"] .hover\:bg-slate-100:hover,
+html:not([data-theme]) .hover\:bg-slate-50:hover,
+html:not([data-theme]) .hover\:bg-slate-100:hover {
+  background-color: #2c312e !important;
+}
+html[data-theme="dark"] .border-slate-200,
+html[data-theme="dark"] .border-slate-100,
+html:not([data-theme]) .border-slate-200,
+html:not([data-theme]) .border-slate-100 {
+  border-color: #2f3431 !important;
+}
+html[data-theme="dark"] .text-slate-900,
+html[data-theme="dark"] .text-slate-800,
+html:not([data-theme]) .text-slate-900,
+html:not([data-theme]) .text-slate-800 {
+  color: #f3f4f6 !important;
+}
+html[data-theme="dark"] .text-slate-700,
+html:not([data-theme]) .text-slate-700 {
+  color: #d1d5db !important;
+}
+html[data-theme="dark"] .text-slate-600,
+html[data-theme="dark"] .text-slate-500,
+html:not([data-theme]) .text-slate-600,
+html:not([data-theme]) .text-slate-500 {
+  color: #9ca3af !important;
+}
+
+/* Pastel status badges in Dark Mode */
+html[data-theme="dark"] .bg-emerald-50,
+html[data-theme="dark"] .bg-emerald-100,
+html:not([data-theme]) .bg-emerald-50,
+html:not([data-theme]) .bg-emerald-100 {
+  background-color: rgba(34, 197, 94, 0.14) !important;
+  color: #4ade80 !important;
+}
+html[data-theme="dark"] .bg-amber-50,
+html[data-theme="dark"] .bg-amber-100,
+html:not([data-theme]) .bg-amber-50,
+html:not([data-theme]) .bg-amber-100 {
+  background-color: rgba(245, 158, 11, 0.14) !important;
+  color: #fbbf24 !important;
+}
+html[data-theme="dark"] .bg-rose-50,
+html[data-theme="dark"] .bg-rose-100,
+html:not([data-theme]) .bg-rose-50,
+html:not([data-theme]) .bg-rose-100 {
+  background-color: rgba(244, 63, 94, 0.14) !important;
+  color: #fb7185 !important;
+}
+html[data-theme="dark"] .bg-blue-50,
+html[data-theme="dark"] .bg-blue-100,
+html:not([data-theme]) .bg-blue-50,
+html:not([data-theme]) .bg-blue-100 {
+  background-color: rgba(34, 197, 94, 0.14) !important;
+  color: #4ade80 !important;
+}
+html[data-theme="dark"] .bg-purple-50,
+html[data-theme="dark"] .bg-purple-100,
+html:not([data-theme]) .bg-purple-50,
+html:not([data-theme]) .bg-purple-100 {
+  background-color: rgba(168, 85, 247, 0.14) !important;
+  color: #c084fc !important;
+}
+html[data-theme="dark"] .text-amber-900,
+html[data-theme="dark"] .text-amber-800,
+html[data-theme="dark"] .text-amber-700,
+html:not([data-theme]) .text-amber-900,
+html:not([data-theme]) .text-amber-800,
+html:not([data-theme]) .text-amber-700 {
+  color: #fbbf24 !important;
+}
+html[data-theme="dark"] .text-emerald-800,
+html[data-theme="dark"] .text-emerald-700,
+html:not([data-theme]) .text-emerald-800,
+html:not([data-theme]) .text-emerald-700 {
+  color: #4ade80 !important;
+}
+
+/* Primary Emerald Green Accent */
+.bg-blue-600 {
+  background-color: #22c55e !important;
+  color: #09130c !important;
+}
+.bg-blue-600:hover,
+.hover\:bg-blue-500:hover {
+  background-color: #16a34a !important;
+}
+.text-blue-400,
+.text-blue-500,
+.text-blue-600 {
+  color: #22c55e !important;
+}
+.border-blue-500 {
+  border-color: #22c55e !important;
+}
+.ring-blue-500,
+.focus\:ring-blue-500:focus {
+  --tw-ring-color: #22c55e !important;
+}
+
+/* ============================================================
+   LIGHT MODE (When toggled via Navbar Theme Switcher)
+   ============================================================ */
+html[data-theme="light"] body,
+html[data-theme="light"] .drivio-shell {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+html[data-theme="light"] .bg-slate-950,
+html[data-theme="light"] .bg-\[\#141615\] {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+html[data-theme="light"] .bg-slate-900,
+html[data-theme="light"] .bg-\[\#1C1F1D\],
+html[data-theme="light"] .bg-slate-800,
+html[data-theme="light"] .bg-slate-800\/80 {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+html[data-theme="light"] .bg-\[\#242825\],
+html[data-theme="light"] .bg-slate-950\/60 {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+html[data-theme="light"] .border-slate-800,
+html[data-theme="light"] .border-slate-700,
+html[data-theme="light"] .border-\[\#2B2F2C\],
+html[data-theme="light"] .border-\[\#323733\] {
+  border-color: #e2e8f0 !important;
+}
+html[data-theme="light"] .text-white,
+html[data-theme="light"] .text-slate-100,
+html[data-theme="light"] .text-slate-200,
+html[data-theme="light"] .text-neutral-100 {
+  color: #0f172a !important;
+}
+html[data-theme="light"] .text-slate-300,
+html[data-theme="light"] .text-slate-400,
+html[data-theme="light"] .text-neutral-300,
+html[data-theme="light"] .text-neutral-400 {
+  color: #475569 !important;
+}
+html[data-theme="light"] nav .text-white {
+  color: #0f172a !important;
+}
+html[data-theme="light"] .drivio-pill-cta {
+  background-color: #0f172a !important;
+  color: #ffffff !important;
+}
+
+/* Dark Leaflet container styling (100% free OSM tiles, no API key required) */
+.leaflet-container {
+  background: #181a19 !important;
+  font-family: inherit !important;
+}
+html[data-theme="dark"] .leaflet-tile-pane,
+html:not([data-theme]) .leaflet-tile-pane {
+  filter: invert(100%) hue-rotate(180deg) brightness(92%) contrast(90%) saturate(75%);
 }

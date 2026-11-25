@@ -48,6 +48,15 @@ public class Payment {
     @Column(name = "receipt_number", unique = true)
     private String receiptNumber;
 
+    @Column(name = "gateway_order_id")
+    private String gatewayOrderId;
+
+    @Column(name = "gateway_payment_id")
+    private String gatewayPaymentId;
+
+    @Column(name = "gateway_signature")
+    private String gatewaySignature;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
@@ -100,6 +109,15 @@ public class Payment {
 
     public String getReceiptNumber() { return receiptNumber; }
     public void setReceiptNumber(String receiptNumber) { this.receiptNumber = receiptNumber; }
+
+    public String getGatewayOrderId() { return gatewayOrderId; }
+    public void setGatewayOrderId(String gatewayOrderId) { this.gatewayOrderId = gatewayOrderId; }
+
+    public String getGatewayPaymentId() { return gatewayPaymentId; }
+    public void setGatewayPaymentId(String gatewayPaymentId) { this.gatewayPaymentId = gatewayPaymentId; }
+
+    public String getGatewaySignature() { return gatewaySignature; }
+    public void setGatewaySignature(String gatewaySignature) { this.gatewaySignature = gatewaySignature; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

@@ -5,6 +5,7 @@ public enum ServiceType {
     ONE_WAY,
     ROUND_TRIP,
     HOURLY,
-    OUTSTATION
+    OUTSTATION,
+    CAR_LUGGAGE_DELIVERY
 }
 

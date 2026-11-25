@@ -140,6 +140,10 @@ public class AuthService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
+        if (!user.isActive()) {
+            throw new UnauthorizedException("Your account has been deactivated. Please contact support.");
+        }
+
         Long profileId = null;
         VerificationStatus verificationStatus = null;
 

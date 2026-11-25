@@ -3,6 +3,7 @@ package com.drivio.controller;
 import com.drivio.dto.BookingResponseDto;
 import com.drivio.dto.CancelBookingRequest;
 import com.drivio.dto.CreateBookingRequest;
+import com.drivio.dto.HandoverInspectionRequest;
 import com.drivio.enums.Role;
 import com.drivio.security.UserPrincipal;
 import com.drivio.service.BookingService;
@@ -11,6 +12,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -28,6 +30,7 @@ public class BookingController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN')")
     @Operation(summary = "Create a new booking and assign/search driver")
     public ResponseEntity<BookingResponseDto> createBooking(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
@@ -55,6 +58,7 @@ public class BookingController {
     }
 
     @PostMapping("/{id}/accept")
+    @PreAuthorize("hasAnyRole('DRIVER', 'ADMIN')")
     @Operation(summary = "Driver accepts an assigned booking")
     public ResponseEntity<BookingResponseDto> acceptBooking(
             @PathVariable Long id,
@@ -63,6 +67,7 @@ public class BookingController {
     }
 
     @PostMapping("/{id}/reject")
+    @PreAuthorize("hasAnyRole('DRIVER', 'ADMIN')")
     @Operation(summary = "Driver declines an assigned booking")
     public ResponseEntity<BookingResponseDto> rejectBooking(
             @PathVariable Long id,
@@ -71,6 +76,7 @@ public class BookingController {
     }
 
     @PostMapping("/{id}/arrived")
+    @PreAuthorize("hasAnyRole('DRIVER', 'ADMIN')")
     @Operation(summary = "Driver marks arrival at pickup location")
     public ResponseEntity<BookingResponseDto> driverArrived(
             @PathVariable Long id,
@@ -79,19 +85,31 @@ public class BookingController {
     }
 
     @PostMapping("/{id}/start")
-    @Operation(summary = "Driver starts the journey")
+    @PreAuthorize("hasAnyRole('DRIVER', 'ADMIN')")
+    @Operation(summary = "Driver starts the journey (with optional handover OTP/odometer/fuel)")
     public ResponseEntity<BookingResponseDto> startTrip(
             @PathVariable Long id,
-            @AuthenticationPrincipal UserPrincipal userPrincipal) {
-        return ResponseEntity.ok(bookingService.startTrip(userPrincipal.getId(), id));
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @RequestBody(required = false) HandoverInspectionRequest handover) {
+        return ResponseEntity.ok(bookingService.startTrip(userPrincipal.getId(), id, handover));
     }
 
     @PostMapping("/{id}/complete")
-    @Operation(summary = "Driver completes the journey")
+    @PreAuthorize("hasAnyRole('DRIVER', 'ADMIN')")
+    @Operation(summary = "Driver completes the journey (with optional destination OTP/odometer/fuel)")
     public ResponseEntity<BookingResponseDto> completeTrip(
             @PathVariable Long id,
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @RequestBody(required = false) HandoverInspectionRequest handover) {
+        return ResponseEntity.ok(bookingService.completeTrip(userPrincipal.getId(), id, handover));
+    }
+
+    @PostMapping("/{id}/sos")
+    @Operation(summary = "Trigger emergency SOS alert for an active booking")
+    public ResponseEntity<BookingResponseDto> triggerSos(
+            @PathVariable Long id,
             @AuthenticationPrincipal UserPrincipal userPrincipal) {
-        return ResponseEntity.ok(bookingService.completeTrip(userPrincipal.getId(), id));
+        return ResponseEntity.ok(bookingService.triggerSos(userPrincipal.getId(), id));
     }
 
     @PostMapping("/{id}/cancel")

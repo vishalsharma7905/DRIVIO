@@ -12,13 +12,21 @@ public class FareEstimateResponse {
     private Integer estimatedDurationMinutes;
     private BigDecimal baseFare;
     private BigDecimal perKmRate;
+    private BigDecimal perMinuteRate;
     private BigDecimal distanceFare;
     private BigDecimal durationFare;
+    private BigDecimal waitingCharges = BigDecimal.ZERO;
+    private BigDecimal surchargeAmount = BigDecimal.ZERO;
+    private BigDecimal tollAmount = BigDecimal.ZERO;
+    private BigDecimal parkingAmount = BigDecimal.ZERO;
     private BigDecimal additionalCharges;
     private BigDecimal subtotal;
     private BigDecimal taxPercentage;
     private BigDecimal taxAmount;
     private BigDecimal totalEstimatedFare;
+    private Integer pricingVersion = 1;
+    private Long pricingProfileVersionId;
+    private boolean minFareApplied = false;
     private String disclaimer = "The displayed fare is an estimate based on selected route and terms. Final fare may adjust slightly if journey duration or route significantly deviates.";
 
     public FareEstimateResponse() {}
@@ -64,5 +72,29 @@ public class FareEstimateResponse {
 
     public String getDisclaimer() { return disclaimer; }
     public void setDisclaimer(String disclaimer) { this.disclaimer = disclaimer; }
+
+    public BigDecimal getPerMinuteRate() { return perMinuteRate; }
+    public void setPerMinuteRate(BigDecimal perMinuteRate) { this.perMinuteRate = perMinuteRate; }
+
+    public BigDecimal getWaitingCharges() { return waitingCharges; }
+    public void setWaitingCharges(BigDecimal waitingCharges) { this.waitingCharges = waitingCharges; }
+
+    public BigDecimal getSurchargeAmount() { return surchargeAmount; }
+    public void setSurchargeAmount(BigDecimal surchargeAmount) { this.surchargeAmount = surchargeAmount; }
+
+    public BigDecimal getTollAmount() { return tollAmount; }
+    public void setTollAmount(BigDecimal tollAmount) { this.tollAmount = tollAmount; }
+
+    public BigDecimal getParkingAmount() { return parkingAmount; }
+    public void setParkingAmount(BigDecimal parkingAmount) { this.parkingAmount = parkingAmount; }
+
+    public Integer getPricingVersion() { return pricingVersion; }
+    public void setPricingVersion(Integer pricingVersion) { this.pricingVersion = pricingVersion; }
+
+    public Long getPricingProfileVersionId() { return pricingProfileVersionId; }
+    public void setPricingProfileVersionId(Long pricingProfileVersionId) { this.pricingProfileVersionId = pricingProfileVersionId; }
+
+    public boolean isMinFareApplied() { return minFareApplied; }
+    public void setMinFareApplied(boolean minFareApplied) { this.minFareApplied = minFareApplied; }
 }
 

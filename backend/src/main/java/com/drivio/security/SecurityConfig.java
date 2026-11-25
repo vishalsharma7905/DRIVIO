@@ -73,11 +73,13 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // Public auth endpoints
                 .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/payments/webhook/razorpay").permitAll()
                 // Public pricing preview, AI extraction, and driver recommendations
                 .requestMatchers(HttpMethod.GET, "/api/pricing/**").permitAll()
-                .requestMatchers(HttpMethod.POST, "/api/pricing/estimate").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/pricing/estimate", "/api/pricing/vehicles/estimates").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/drivers/recommendations").permitAll()
                 .requestMatchers("/api/ai/**").permitAll()
+                .requestMatchers("/api/routing/**").permitAll()
                 // Public docs and static files
                 .requestMatchers("/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                 .requestMatchers("/ws/**").permitAll()

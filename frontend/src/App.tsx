@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -37,8 +38,9 @@ import { AdminComplaintsPage } from './pages/admin/AdminComplaintsPage';
 export const App: React.FC = () => {
   return (
     <Router>
-      <AuthProvider>
-        <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 font-sans">
+      <ThemeProvider>
+        <AuthProvider>
+          <div className="min-h-screen flex flex-col drivio-shell bg-[#141615] text-neutral-100 font-sans">
           <Navbar />
           <main className="flex-1">
             <ErrorBoundary>
@@ -52,10 +54,18 @@ export const App: React.FC = () => {
 
                 {/* Direct Booking & Tracking aliases */}
                 <Route
+                  path="/ride"
+                  element={
+                    <ProtectedRoute allowedRoles={['CUSTOMER', 'ADMIN']}>
+                      <CreateBookingPage defaultMode="RIDE" />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
                   path="/book"
                   element={
                     <ProtectedRoute allowedRoles={['CUSTOMER', 'ADMIN']}>
-                      <CreateBookingPage />
+                      <CreateBookingPage defaultMode="DRIVER" />
                     </ProtectedRoute>
                   }
                 />
@@ -78,10 +88,18 @@ export const App: React.FC = () => {
                   }
                 />
                 <Route
+                  path="/customer/ride"
+                  element={
+                    <ProtectedRoute allowedRoles={['CUSTOMER', 'ADMIN']}>
+                      <CreateBookingPage defaultMode="RIDE" />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
                   path="/customer/book"
                   element={
                     <ProtectedRoute allowedRoles={['CUSTOMER', 'ADMIN']}>
-                      <CreateBookingPage />
+                      <CreateBookingPage defaultMode="DRIVER" />
                     </ProtectedRoute>
                   }
                 />
@@ -199,9 +217,10 @@ export const App: React.FC = () => {
               </Routes>
             </ErrorBoundary>
           </main>
-          <Footer />
-        </div>
-      </AuthProvider>
+            <Footer />
+          </div>
+        </AuthProvider>
+      </ThemeProvider>
     </Router>
   );
 };

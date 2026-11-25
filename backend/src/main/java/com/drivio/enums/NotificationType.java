@@ -11,6 +11,7 @@ public enum NotificationType {
     BOOKING_CANCELLED,
     PAYMENT_CONFIRMED,
     KYC_STATUS_UPDATED,
+    SYSTEM_ALERT,
     GENERAL
 }
 

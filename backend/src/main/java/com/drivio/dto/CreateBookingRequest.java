@@ -4,6 +4,7 @@ import com.drivio.enums.ServiceType;
 import com.drivio.enums.VehicleType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public class CreateBookingRequest {
@@ -39,6 +40,15 @@ public class CreateBookingRequest {
     private Integer estimatedDurationMinutes = 0;
     private String specialInstructions;
     private Long requestedDriverId;
+    private String serviceSubtype;
+    private Long vehicleId;
+    private Integer luggageCount = 0;
+    private Integer waitingMinutes = 0;
+    private boolean nightSurchargeApplied = false;
+    private boolean peakSurchargeApplied = false;
+    private boolean stackPeakAndNight = false;
+    private BigDecimal tollAmount = BigDecimal.ZERO;
+    private BigDecimal parkingAmount = BigDecimal.ZERO;
 
     public CreateBookingRequest() {}
 
@@ -80,5 +90,32 @@ public class CreateBookingRequest {
 
     public Long getRequestedDriverId() { return requestedDriverId; }
     public void setRequestedDriverId(Long requestedDriverId) { this.requestedDriverId = requestedDriverId; }
+
+    public String getServiceSubtype() { return serviceSubtype; }
+    public void setServiceSubtype(String serviceSubtype) { this.serviceSubtype = serviceSubtype; }
+
+    public Long getVehicleId() { return vehicleId; }
+    public void setVehicleId(Long vehicleId) { this.vehicleId = vehicleId; }
+
+    public Integer getLuggageCount() { return luggageCount; }
+    public void setLuggageCount(Integer luggageCount) { this.luggageCount = luggageCount; }
+
+    public Integer getWaitingMinutes() { return waitingMinutes; }
+    public void setWaitingMinutes(Integer waitingMinutes) { this.waitingMinutes = waitingMinutes; }
+
+    public boolean isNightSurchargeApplied() { return nightSurchargeApplied; }
+    public void setNightSurchargeApplied(boolean nightSurchargeApplied) { this.nightSurchargeApplied = nightSurchargeApplied; }
+
+    public boolean isPeakSurchargeApplied() { return peakSurchargeApplied; }
+    public void setPeakSurchargeApplied(boolean peakSurchargeApplied) { this.peakSurchargeApplied = peakSurchargeApplied; }
+
+    public boolean isStackPeakAndNight() { return stackPeakAndNight; }
+    public void setStackPeakAndNight(boolean stackPeakAndNight) { this.stackPeakAndNight = stackPeakAndNight; }
+
+    public BigDecimal getTollAmount() { return tollAmount; }
+    public void setTollAmount(BigDecimal tollAmount) { this.tollAmount = tollAmount; }
+
+    public BigDecimal getParkingAmount() { return parkingAmount; }
+    public void setParkingAmount(BigDecimal parkingAmount) { this.parkingAmount = parkingAmount; }
 }
 

@@ -10,6 +10,7 @@ import com.drivio.enums.ServiceType;
 import com.drivio.enums.VehicleType;
 import com.drivio.enums.VerificationStatus;
 import com.drivio.repository.DriverProfileRepository;
+import com.drivio.service.AiService;
 import com.drivio.service.RecommendationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,6 +23,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -29,6 +31,9 @@ public class RecommendationServiceTest {
 
     @Mock
     private DriverProfileRepository driverProfileRepository;
+
+    @Mock
+    private AiService aiService;
 
     @InjectMocks
     private RecommendationService recommendationService;
@@ -76,6 +81,8 @@ public class RecommendationServiceTest {
     void testRecommendDrivers_RankingAndScores() {
         when(driverProfileRepository.findAvailableAndVerifiedDrivers())
                 .thenReturn(Arrays.asList(driver1, driver2));
+        when(aiService.generateRecommendationEndorsement(anyString(), any(), any(), any(), any(), anyString(), anyString()))
+                .thenReturn("Rajesh Kumar is your top match.");
 
         RecommendationRequest request = new RecommendationRequest();
         request.setServiceType(ServiceType.OWN_CAR_DRIVER);

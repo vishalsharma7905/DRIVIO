@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Car, Navigation, Compass, Clock, MapPin, ArrowRight, Shield, Check } from 'lucide-react';
 import api from '../../services/api';
-import { PricingConfiguration } from '../../types';
+import { PricingConfiguration, ServiceType } from '../../types';
 
 export const ServicesPage: React.FC = () => {
   const [configs, setConfigs] = useState<PricingConfiguration[]>([]);
@@ -23,7 +23,7 @@ export const ServicesPage: React.FC = () => {
     }
   };
 
-  const serviceMeta = {
+  const serviceMeta: Record<ServiceType, { title: string; desc: string; icon: typeof Car; features: string[] }> = {
     OWN_CAR_DRIVER: {
       title: 'Own-Car Driver Service',
       desc: 'Hire a skilled chauffeur to drive your personal car. Ideal for city errands, medical appointments, social functions, or relaxing while commuting.',
@@ -53,6 +53,12 @@ export const ServicesPage: React.FC = () => {
       desc: 'Expert highway drivers for intercity road trips, weekend vacations, and long-distance driving.',
       icon: MapPin,
       features: ['Highway driving certified', 'Knowledge of toll & expressways', 'Day & multi-day trip coverage'],
+    },
+    CAR_LUGGAGE_DELIVERY: {
+      title: 'Car + Luggage Delivery',
+      desc: 'Door-to-door relocation of your personal vehicle and luggage with verified handover OTP, odometer, and fuel checks.',
+      icon: Shield,
+      features: ['Pickup & Destination OTP verification', 'Odometer, fuel & damage inspection', 'Live GPS tracking'],
     },
   };
 
