@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Car, Navigation, Compass, Clock, MapPin, ArrowRight, Shield, Check } from 'lucide-react';
 import api from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 import { PricingConfiguration, ServiceType } from '../../types';
 
 export const ServicesPage: React.FC = () => {
+  const { role } = useAuth();
   const [configs, setConfigs] = useState<PricingConfiguration[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -137,13 +139,23 @@ export const ServicesPage: React.FC = () => {
                   </div>
                 </div>
 
-                <Link
-                  to={`/book?service=${config.serviceType}`}
-                  className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl text-xs flex items-center justify-center space-x-2 shadow-md transition-colors"
-                >
-                  <span>Book {meta.title}</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
+                {role === 'DRIVER' ? (
+                  <Link
+                    to="/driver/dashboard"
+                    className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl text-xs flex items-center justify-center space-x-2 shadow-md transition-colors"
+                  >
+                    <span>Go to Driver Dashboard</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                ) : (
+                  <Link
+                    to={`/book?service=${config.serviceType}`}
+                    className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl text-xs flex items-center justify-center space-x-2 shadow-md transition-colors"
+                  >
+                    <span>Book {meta.title}</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                )}
               </div>
             );
           })}

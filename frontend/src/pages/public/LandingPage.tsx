@@ -6,10 +6,12 @@ import {
   MapPin, Check, ChevronRight
 } from 'lucide-react';
 import api from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 import { AiExtractionResult } from '../../types';
 
 export const LandingPage: React.FC = () => {
   const navigate = useNavigate();
+  const { isAuthenticated, role } = useAuth();
   const [aiPrompt, setAiPrompt] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
   const [aiResult, setAiResult] = useState<AiExtractionResult | null>(null);
@@ -30,6 +32,10 @@ export const LandingPage: React.FC = () => {
   };
 
   const handleProceedToBooking = () => {
+    if (role === 'DRIVER') {
+      navigate('/driver/dashboard');
+      return;
+    }
     if (aiResult) {
       navigate('/book', { state: { prefilled: aiResult } });
     } else {
@@ -62,21 +68,90 @@ export const LandingPage: React.FC = () => {
               </p>
 
               <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
-                <Link
-                  to="/book"
-                  className="w-full sm:w-auto px-8 py-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-lg shadow-blue-600/30 flex items-center justify-center space-x-2 transition-all group"
-                >
-                  <span>Book a Driver</span>
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </Link>
+                {!isAuthenticated ? (
+                  <>
+                    <Link
+                      to="/ride"
+                      className="w-full sm:w-auto px-8 py-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-neutral-950 font-semibold shadow-lg shadow-emerald-500/20 flex items-center justify-center space-x-2 transition-all group"
+                    >
+                      <span>Book a Ride</span>
+                      <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                    </Link>
 
-                <Link
-                  to="/register"
-                  className="w-full sm:w-auto px-8 py-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold border border-slate-700/80 flex items-center justify-center space-x-2 transition-all"
-                >
-                  <Shield className="w-5 h-5 text-emerald-400" />
-                  <span>Join as Driver</span>
-                </Link>
+                    <Link
+                      to="/book"
+                      className="w-full sm:w-auto px-8 py-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-lg shadow-blue-600/30 flex items-center justify-center space-x-2 transition-all group"
+                    >
+                      <span>Book a Driver</span>
+                      <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                    </Link>
+
+                    <Link
+                      to="/register"
+                      className="w-full sm:w-auto px-8 py-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold border border-slate-700/80 flex items-center justify-center space-x-2 transition-all"
+                    >
+                      <Shield className="w-5 h-5 text-emerald-400" />
+                      <span>Join as Driver</span>
+                    </Link>
+                  </>
+                ) : role === 'DRIVER' ? (
+                  <>
+                    <Link
+                      to="/driver/dashboard"
+                      className="w-full sm:w-auto px-8 py-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-neutral-950 font-semibold shadow-lg shadow-emerald-500/20 flex items-center justify-center space-x-2 transition-all group"
+                    >
+                      <span>Go to Driver Dashboard</span>
+                      <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                    </Link>
+                    <Link
+                      to="/driver/trips"
+                      className="w-full sm:w-auto px-8 py-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold border border-slate-700/80 flex items-center justify-center space-x-2 transition-all"
+                    >
+                      <span>View Assigned Trips</span>
+                    </Link>
+                  </>
+                ) : role === 'ADMIN' ? (
+                  <>
+                    <Link
+                      to="/admin/dashboard"
+                      className="w-full sm:w-auto px-8 py-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-neutral-950 font-semibold shadow-lg shadow-emerald-500/20 flex items-center justify-center space-x-2 transition-all group"
+                    >
+                      <span>Go to Admin Console</span>
+                      <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                    </Link>
+                    <Link
+                      to="/admin/pricing"
+                      className="w-full sm:w-auto px-8 py-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold border border-slate-700/80 flex items-center justify-center space-x-2 transition-all"
+                    >
+                      <span>Manage Pricing</span>
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <Link
+                      to="/ride"
+                      className="w-full sm:w-auto px-8 py-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-neutral-950 font-semibold shadow-lg shadow-emerald-500/20 flex items-center justify-center space-x-2 transition-all group"
+                    >
+                      <span>Book a Ride</span>
+                      <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                    </Link>
+
+                    <Link
+                      to="/book"
+                      className="w-full sm:w-auto px-8 py-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold border border-slate-700/80 flex items-center justify-center space-x-2 transition-all group"
+                    >
+                      <span>Book a Driver</span>
+                      <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                    </Link>
+
+                    <Link
+                      to="/customer/dashboard"
+                      className="w-full sm:w-auto px-8 py-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold border border-slate-700/80 flex items-center justify-center space-x-2 transition-all"
+                    >
+                      <span>My Dashboard</span>
+                    </Link>
+                  </>
+                )}
               </div>
 
               {/* Trust badges */}
@@ -250,10 +325,10 @@ export const LandingPage: React.FC = () => {
                   <div className="pt-3 border-t border-slate-800">
                     <span className="text-xs font-semibold text-emerald-400 block">{s.fare}</span>
                     <Link
-                      to={`/book?service=${s.type}`}
+                      to={role === 'DRIVER' ? '/driver/dashboard' : `/book?service=${s.type}`}
                       className="mt-2 text-xs font-medium text-blue-400 group-hover:text-blue-300 flex items-center space-x-1"
                     >
-                      <span>Book now</span>
+                      <span>{role === 'DRIVER' ? 'Driver Portal' : 'Book now'}</span>
                       <ChevronRight className="w-3.5 h-3.5" />
                     </Link>
                   </div>
@@ -295,10 +370,10 @@ export const LandingPage: React.FC = () => {
 
               <div className="mt-8">
                 <Link
-                  to="/book"
+                  to={role === 'DRIVER' ? '/driver/dashboard' : role === 'ADMIN' ? '/admin/dashboard' : '/ride'}
                   className="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold inline-flex items-center space-x-2 transition-colors"
                 >
-                  <span>Experience DRIVIO Today</span>
+                  <span>{role === 'DRIVER' ? 'Open Driver Dashboard' : role === 'ADMIN' ? 'Open Admin Console' : 'Book Your Ride Today'}</span>
                   <ArrowRight className="w-4 h-4" />
                 </Link>
               </div>

@@ -1,8 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Car, Heart, Shield, Phone, Mail, MapPin } from 'lucide-react';
+import { Car, Shield, Phone, Mail, MapPin } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 export const Footer: React.FC = () => {
+  const { isAuthenticated, role } = useAuth();
   return (
     <footer className="bg-slate-950 text-slate-400 border-t border-slate-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -29,8 +31,30 @@ export const Footer: React.FC = () => {
             <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">Marketplace</h3>
             <ul className="space-y-2 text-sm">
               <li><Link to="/services" className="hover:text-white transition-colors">Our Services</Link></li>
-              <li><Link to="/book" className="hover:text-white transition-colors">Book a Driver</Link></li>
-              <li><Link to="/register" className="hover:text-white transition-colors">Drive with Us</Link></li>
+              {(!isAuthenticated || role === 'CUSTOMER') && (
+                <>
+                  <li><Link to="/ride" className="hover:text-white transition-colors">Book a Ride</Link></li>
+                  <li><Link to="/book" className="hover:text-white transition-colors">Book a Driver</Link></li>
+                </>
+              )}
+              {!isAuthenticated && (
+                <li><Link to="/register" className="hover:text-white transition-colors">Drive with Us</Link></li>
+              )}
+              {isAuthenticated && role === 'CUSTOMER' && (
+                <li><Link to="/customer/trips" className="hover:text-white transition-colors">My Trips</Link></li>
+              )}
+              {isAuthenticated && role === 'DRIVER' && (
+                <>
+                  <li><Link to="/driver/dashboard" className="hover:text-white transition-colors">Driver Dashboard</Link></li>
+                  <li><Link to="/driver/trips" className="hover:text-white transition-colors">Assigned Trips</Link></li>
+                </>
+              )}
+              {isAuthenticated && role === 'ADMIN' && (
+                <>
+                  <li><Link to="/admin/dashboard" className="hover:text-white transition-colors">Admin Console</Link></li>
+                  <li><Link to="/admin/pricing" className="hover:text-white transition-colors">Pricing Engine</Link></li>
+                </>
+              )}
               <li><Link to="/about" className="hover:text-white transition-colors">Safety Standards</Link></li>
             </ul>
           </div>
